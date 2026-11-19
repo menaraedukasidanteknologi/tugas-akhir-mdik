@@ -1,0 +1,798 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Web-GIS Kebencanaan Tanah Longsor - Sulawesi Tengah</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background: #eef1f5;
+        color: #222;
+      }
+      header {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        color: #fff;
+        padding: 20px 30px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      }
+      header h1 {
+        margin: 0 0 6px;
+        font-size: 22px;
+      }
+      header h2 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 400;
+        opacity: 0.9;
+      }
+
+      .dashboard {
+        padding: 15px 30px;
+      }
+      .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        margin-bottom: 15px;
+      }
+      .stat-card {
+        background: #fff;
+        padding: 14px 18px;
+        border-radius: 10px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        border-left: 5px solid #007bff;
+      }
+      .stat-card .label {
+        font-size: 12px;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .stat-card .value {
+        font-size: 24px;
+        font-weight: bold;
+        margin-top: 4px;
+        color: #1e3c72;
+      }
+      .stat-card.red {
+        border-left-color: #dc3545;
+      }
+      .stat-card.orange {
+        border-left-color: #fd7e14;
+      }
+      .stat-card.blue {
+        border-left-color: #007bff;
+      }
+      .stat-card.green {
+        border-left-color: #28a745;
+      }
+
+      .panel {
+        background: #fff;
+        padding: 15px 18px;
+        border-radius: 10px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        margin-bottom: 12px;
+      }
+      .panel-title {
+        font-weight: 600;
+        margin-bottom: 10px;
+        font-size: 14px;
+        color: #1e3c72;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 6px;
+      }
+      .filter-row {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .filter-row label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #444;
+      }
+
+      input,
+      select,
+      button {
+        padding: 8px 10px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 13px;
+        font-family: inherit;
+      }
+      input:focus,
+      select:focus {
+        outline: 2px solid #2a5298;
+        border-color: transparent;
+      }
+      button {
+        background-color: #007bff;
+        color: #fff;
+        cursor: pointer;
+        border: none;
+        font-weight: 600;
+        transition: 0.2s;
+      }
+      button:hover {
+        background-color: #0056b3;
+        transform: translateY(-1px);
+      }
+      .btn-danger {
+        background-color: #dc3545;
+      }
+      .btn-danger:hover {
+        background-color: #b02a37;
+      }
+      .btn-secondary {
+        background-color: #6c757d;
+      }
+      .btn-secondary:hover {
+        background-color: #565e64;
+      }
+      .btn-success {
+        background-color: #28a745;
+      }
+      .btn-success:hover {
+        background-color: #1e7e34;
+      }
+
+      #map {
+        height: 65vh;
+        width: calc(100% - 60px);
+        margin: 0 30px 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+      }
+
+      .login-box {
+        background: #fff3cd;
+        padding: 12px 15px;
+        border-radius: 8px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        border-left: 4px solid #ffc107;
+      }
+      .admin-panel {
+        background: #d1ecf1;
+        padding: 12px 15px;
+        border-radius: 8px;
+        display: none;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        border-left: 4px solid #17a2b8;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #fff;
+      }
+      .badge.sangat {
+        background: #dc3545;
+      }
+      .badge.tinggi {
+        background: #fd7e14;
+      }
+      .badge.sedang {
+        background: #007bff;
+      }
+
+      .legend {
+        background: #fff;
+        padding: 10px 14px;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        line-height: 1.9;
+        font-size: 12px;
+      }
+      .legend b {
+        display: block;
+        margin-bottom: 4px;
+      }
+      .legend .dot {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 6px;
+        border: 1px solid #333;
+        vertical-align: middle;
+      }
+
+      footer {
+        text-align: center;
+        padding: 15px;
+        color: #666;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Sistem Informasi & Manajemen Data Kebencanaan</h1>
+      <h2>Studi Kasus: Tanah Longsor — Provinsi Sulawesi Tengah</h2>
+    </header>
+
+    <div class="dashboard">
+      <!-- STATISTIK -->
+      <div class="stats-row">
+        <div class="stat-card blue">
+          <div class="label">Total Kejadian</div>
+          <div class="value" id="stat-total">0</div>
+        </div>
+        <div class="stat-card red">
+          <div class="label">Total Korban Jiwa</div>
+          <div class="value" id="stat-korban">0</div>
+        </div>
+        <div class="stat-card orange">
+          <div class="label">Risiko Sangat Tinggi</div>
+          <div class="value" id="stat-tinggi">0</div>
+        </div>
+        <div class="stat-card green">
+          <div class="label">Curah Hujan (BMKG)</div>
+          <div class="value" id="stat-hujan">—</div>
+        </div>
+      </div>
+
+      <!-- FILTER -->
+      <div class="panel">
+        <div class="panel-title">🔍 Filter Data</div>
+        <div class="filter-row">
+          <label>Risiko:</label>
+          <select id="filter-risiko" onchange="renderSemua()">
+            <option value="Semua">Semua Risiko</option>
+            <option value="Sangat Tinggi">Sangat Tinggi</option>
+            <option value="Tinggi">Tinggi</option>
+            <option value="Sedang">Sedang</option>
+          </select>
+          <label>Dari Tanggal:</label>
+          <input type="date" id="tgl-mulai" onchange="renderSemua()" />
+          <label>Sampai:</label>
+          <input type="date" id="tgl-selesai" onchange="renderSemua()" />
+          <button class="btn-secondary" onclick="resetFilter()">
+            Reset Filter
+          </button>
+        </div>
+      </div>
+
+      <!-- LOGIN -->
+      <div id="login-section" class="panel login-box">
+        <strong>🔐 Login Admin BPBD:</strong>
+        <input type="text" id="login-username" placeholder="Username" />
+        <input
+          type="password"
+          id="login-password"
+          placeholder="Password" />
+        <button onclick="prosesLogin()">Login</button>
+      </div>
+
+      <!-- ADMIN PANEL -->
+      <div id="admin-panel" class="panel admin-panel">
+        <strong>➕ Tambah Data Kejadian:</strong>
+        <input
+          type="text"
+          id="input-lokasi"
+          placeholder="Nama Lokasi"
+          style="width: 150px" />
+        <select id="input-risiko">
+          <option value="Sedang">Sedang</option>
+          <option value="Tinggi">Tinggi</option>
+          <option value="Sangat Tinggi">Sangat Tinggi</option>
+        </select>
+        <input type="date" id="input-tanggal" />
+        <input
+          type="number"
+          id="input-korban"
+          placeholder="Korban"
+          style="width: 80px" />
+        <input
+          type="number"
+          step="0.001"
+          id="input-lat"
+          placeholder="Latitude"
+          style="width: 110px" />
+        <input
+          type="number"
+          step="0.001"
+          id="input-lng"
+          placeholder="Longitude"
+          style="width: 110px" />
+        <input
+          type="number"
+          step="0.1"
+          id="input-hujan"
+          placeholder="Curah Hujan (mm)"
+          style="width: 130px" />
+        <button class="btn-success" onclick="tambahData()">Simpan</button>
+        <button class="btn-danger" onclick="resetDataDefault()">
+          Reset Data Default
+        </button>
+        <button class="btn-secondary" onclick="prosesLogout()">Logout</button>
+      </div>
+    </div>
+
+    <div id="map"></div>
+
+    <footer>
+      © 2026 — Proyek Tugas Akhir Sistem Informasi Kebencanaan | Universitas
+      Tadulako
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      /* =========================================================
+   1. DATA CUACA (SIMULASI BMKG)
+   ========================================================= */
+      const dataCuaca = {
+        stasiun: "Stasiun Meteorologi Palu",
+        curah_hujan_mm: 120,
+        status: "Siaga",
+      };
+
+      /* =========================================================
+   2. DATA DEFAULT KEJADIAN LONGSOR (SUMBER: BNPB, DISIMULASIKAN)
+   ========================================================= */
+      const DEFAULT_DATA = [
+        {
+          id: 1,
+          lokasi: "Kec. Palu Barat, Palu",
+          risiko: "Sangat Tinggi",
+          tanggal: "2024-01-15",
+          korban: 2,
+          lat: -0.891,
+          lng: 119.87,
+          curah_hujan_mm: 145,
+          jarak_ke_jalan_km: 0.3,
+          tipe_infrastruktur_terdampak: "Jalan Provinsi",
+        },
+        {
+          id: 2,
+          lokasi: "Kec. Sigi Biromaru, Sigi",
+          risiko: "Tinggi",
+          tanggal: "2024-02-20",
+          korban: 0,
+          lat: -1.22,
+          lng: 119.97,
+          curah_hujan_mm: 110,
+          jarak_ke_jalan_km: 1.2,
+          tipe_infrastruktur_terdampak: "Permukiman",
+        },
+        {
+          id: 3,
+          lokasi: "Kec. Banawa, Donggala",
+          risiko: "Sangat Tinggi",
+          tanggal: "2024-03-10",
+          korban: 5,
+          lat: -0.69,
+          lng: 119.73,
+          curah_hujan_mm: 170,
+          jarak_ke_jalan_km: 0.1,
+          tipe_infrastruktur_terdampak: "Jalan Nasional",
+        },
+        {
+          id: 4,
+          lokasi: "Kec. Poso Kota, Poso",
+          risiko: "Sedang",
+          tanggal: "2024-04-05",
+          korban: 0,
+          lat: -1.39,
+          lng: 120.75,
+          curah_hujan_mm: 80,
+          jarak_ke_jalan_km: 2.5,
+          tipe_infrastruktur_terdampak: "Lahan Pertanian",
+        },
+        {
+          id: 5,
+          lokasi: "Kec. Parigi, Parigi Moutong",
+          risiko: "Tinggi",
+          tanggal: "2024-05-12",
+          korban: 1,
+          lat: -0.62,
+          lng: 120.18,
+          curah_hujan_mm: 130,
+          jarak_ke_jalan_km: 0.6,
+          tipe_infrastruktur_terdampak: "Permukiman",
+        },
+        {
+          id: 6,
+          lokasi: "Kec. Baolan, Tolitoli",
+          risiko: "Sedang",
+          tanggal: "2024-06-18",
+          korban: 0,
+          lat: 1.04,
+          lng: 120.82,
+          curah_hujan_mm: 75,
+          jarak_ke_jalan_km: 1.8,
+          tipe_infrastruktur_terdampak: "Lahan Pertanian",
+        },
+        {
+          id: 7,
+          lokasi: "Kec. Ampana, Tojo Una-Una",
+          risiko: "Tinggi",
+          tanggal: "2024-07-22",
+          korban: 3,
+          lat: -1.27,
+          lng: 121.38,
+          curah_hujan_mm: 160,
+          jarak_ke_jalan_km: 0.4,
+          tipe_infrastruktur_terdampak: "Jalan Provinsi",
+        },
+        {
+          id: 8,
+          lokasi: "Kec. Bungku, Morowali",
+          risiko: "Sedang",
+          tanggal: "2024-08-30",
+          korban: 0,
+          lat: -2.35,
+          lng: 121.85,
+          curah_hujan_mm: 90,
+          jarak_ke_jalan_km: 3.0,
+          tipe_infrastruktur_terdampak: "Kawasan Tambang",
+        },
+        {
+          id: 9,
+          lokasi: "Kec. Luwuk, Banggai",
+          risiko: "Tinggi",
+          tanggal: "2024-09-14",
+          korban: 2,
+          lat: -1.29,
+          lng: 122.85,
+          curah_hujan_mm: 120,
+          jarak_ke_jalan_km: 0.5,
+          tipe_infrastruktur_terdampak: "Permukiman",
+        },
+        {
+          id: 10,
+          lokasi: "Kec. Paleleh, Buol",
+          risiko: "Sedang",
+          tanggal: "2024-10-05",
+          korban: 0,
+          lat: 1.16,
+          lng: 121.42,
+          curah_hujan_mm: 85,
+          jarak_ke_jalan_km: 2.2,
+          tipe_infrastruktur_terdampak: "Jalan Desa",
+        },
+        {
+          id: 11,
+          lokasi: "Kec. Palu Timur, Palu",
+          risiko: "Sangat Tinggi",
+          tanggal: "2024-11-20",
+          korban: 0,
+          lat: -0.905,
+          lng: 119.89,
+          curah_hujan_mm: 155,
+          jarak_ke_jalan_km: 0.2,
+          tipe_infrastruktur_terdampak: "Jalan Nasional",
+        },
+        {
+          id: 12,
+          lokasi: "Kec. Dolo, Sigi",
+          risiko: "Tinggi",
+          tanggal: "2024-12-08",
+          korban: 1,
+          lat: -1.25,
+          lng: 120.01,
+          curah_hujan_mm: 140,
+          jarak_ke_jalan_km: 0.9,
+          tipe_infrastruktur_terdampak: "Permukiman",
+        },
+      ];
+
+      /* =========================================================
+   3. ZONA RAWAN (POLYGON SIMULASI)
+   ========================================================= */
+      const zonaRawan = {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            properties: { nama: "Zona Rawan Tinggi (Sigi & Palu)" },
+            geometry: {
+              type: "Polygon",
+              coordinates: [
+                [
+                  [119.8, -1.2],
+                  [120.2, -1.2],
+                  [120.2, -0.8],
+                  [119.8, -0.8],
+                  [119.8, -1.2],
+                ],
+              ],
+            },
+          },
+          {
+            type: "Feature",
+            properties: { nama: "Zona Rawan Sedang (Donggala)" },
+            geometry: {
+              type: "Polygon",
+              coordinates: [
+                [
+                  [119.6, -0.8],
+                  [120.0, -0.8],
+                  [120.0, -0.5],
+                  [119.6, -0.5],
+                  [119.6, -0.8],
+                ],
+              ],
+            },
+          },
+        ],
+      };
+
+      /* =========================================================
+   4. MANAJEMEN DATA (localStorage)
+   ========================================================= */
+      const STORAGE_KEY = "db_longsor_webgis";
+
+      function getData() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return [...DEFAULT_DATA];
+          return JSON.parse(raw);
+        } catch (e) {
+          return [...DEFAULT_DATA];
+        }
+      }
+      function saveData(arr) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+      }
+      function resetDataDefault() {
+        if (!confirm("Yakin reset ke data default? Data tambahan akan hilang."))
+          return;
+        localStorage.removeItem(STORAGE_KEY);
+        renderSemua();
+        alert("Data berhasil di-reset ke default.");
+      }
+
+      /* =========================================================
+   5. INISIALISASI PETA
+   ========================================================= */
+      const map = L.map("map").setView([-0.891, 119.87], 8);
+      L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
+        maxZoom: 17,
+        attribution: "&copy; OpenTopoMap | Web-GIS Kebencanaan Tadulako",
+      }).addTo(map);
+
+      // Polygon zona rawan
+      L.geoJSON(zonaRawan, {
+        style: (feature) => ({
+          color: feature.properties.nama.includes("Tinggi")
+            ? "#dc3545"
+            : "#fd7e14",
+          weight: 2,
+          fillColor: feature.properties.nama.includes("Tinggi")
+            ? "#dc3545"
+            : "#fd7e14",
+          fillOpacity: 0.18,
+          dashArray: "5,5",
+        }),
+        onEachFeature: (feature, layer) => {
+          layer.bindPopup(`<b>${feature.properties.nama}</b>`);
+        },
+      }).addTo(map);
+
+      // Legend
+      const legend = L.control({ position: "bottomright" });
+      legend.onAdd = () => {
+        const div = L.DomUtil.create("div", "legend");
+        div.innerHTML = `
+    <b>Legenda</b>
+    <div><span class="dot" style="background:#dc3545"></span>Sangat Tinggi</div>
+    <div><span class="dot" style="background:#fd7e14"></span>Tinggi</div>
+    <div><span class="dot" style="background:#007bff"></span>Sedang</div>
+    <div style="margin-top:6px;font-size:11px;color:#555">⬛ Garis putus = Zona Rawan</div>
+  `;
+        return div;
+      };
+      legend.addTo(map);
+
+      /* =========================================================
+   6. RENDER MARKER + STATISTIK
+   ========================================================= */
+      let markerLayer = null;
+
+      function warnaRisiko(r) {
+        return r === "Sangat Tinggi"
+          ? "#dc3545"
+          : r === "Tinggi"
+            ? "#fd7e14"
+            : "#007bff";
+      }
+
+      function renderSemua() {
+        renderMarkers();
+        renderStats();
+      }
+
+      function renderMarkers() {
+        const data = getData();
+        const risiko = document.getElementById("filter-risiko").value;
+        const tglMulai = document.getElementById("tgl-mulai").value;
+        const tglSelesai = document.getElementById("tgl-selesai").value;
+
+        const filtered = data.filter((d) => {
+          if (risiko !== "Semua" && d.risiko !== risiko) return false;
+          if (tglMulai && d.tanggal < tglMulai) return false;
+          if (tglSelesai && d.tanggal > tglSelesai) return false;
+          return true;
+        });
+
+        if (markerLayer) map.removeLayer(markerLayer);
+
+        markerLayer = L.layerGroup(
+          filtered.map((d) => {
+            const marker = L.circleMarker([d.lat, d.lng], {
+              radius: 10,
+              fillColor: warnaRisiko(d.risiko),
+              color: "#222",
+              weight: 1.5,
+              fillOpacity: 0.9,
+            });
+            marker.bindPopup(`
+      <div style="font-family:Segoe UI,Arial;font-size:13px;min-width:200px">
+        <b style="font-size:14px">${d.lokasi}</b><br>
+        <hr style="margin:6px 0;border:none;border-top:1px solid #eee">
+        <b>Tanggal:</b> ${d.tanggal}<br>
+        <b>Risiko:</b> <span class="badge ${d.risiko === "Sangat Tinggi" ? "sangat" : d.risiko.toLowerCase()}">${d.risiko}</span><br>
+        <b>Korban:</b> ${d.korban} jiwa<br>
+        <b>Curah Hujan:</b> ${d.curah_hujan_mm ?? "-"} mm<br>
+        <b>Jarak ke Jalan:</b> ${d.jarak_ke_jalan_km ?? "-"} km<br>
+        <b>Infrastruktur:</b> ${d.tipe_infrastruktur_terdampak || "-"}
+      </div>
+    `);
+            return marker;
+          }),
+        ).addTo(map);
+
+        if (filtered.length) {
+          const bounds = L.latLngBounds(filtered.map((d) => [d.lat, d.lng]));
+          map.fitBounds(bounds, { padding: [40, 40], maxZoom: 10 });
+        }
+      }
+
+      function renderStats() {
+        const data = getData();
+        const total = data.length;
+        const totalKorban = data.reduce((s, d) => s + (d.korban || 0), 0);
+        const tinggiCount = data.filter(
+          (d) => d.risiko === "Sangat Tinggi",
+        ).length;
+
+        document.getElementById("stat-total").textContent = total;
+        document.getElementById("stat-korban").textContent = totalKorban;
+        document.getElementById("stat-tinggi").textContent = tinggiCount;
+        document.getElementById("stat-hujan").textContent =
+          dataCuaca.curah_hujan_mm + " mm";
+      }
+
+      /* =========================================================
+   7. LOGIN & LOGOUT (SIMULASI)
+   ========================================================= */
+      const SESSION_KEY = "login_admin_longsor";
+
+      function setLoginUI(isLogin) {
+        document.getElementById("login-section").style.display = isLogin
+          ? "none"
+          : "flex";
+        document.getElementById("admin-panel").style.display = isLogin
+          ? "flex"
+          : "none";
+      }
+      function prosesLogin() {
+        const user = document.getElementById("login-username").value.trim();
+        const pass = document.getElementById("login-password").value;
+        if (user === "admin" && pass === "admin123") {
+          sessionStorage.setItem(SESSION_KEY, "1");
+          setLoginUI(true);
+          alert("Login berhasil. Selamat datang, Admin BPBD!");
+        } else {
+          alert("Username atau password salah.\nGunakan: admin / admin123");
+        }
+      }
+      function prosesLogout() {
+        sessionStorage.removeItem(SESSION_KEY);
+        setLoginUI(false);
+        document.getElementById("login-username").value = "";
+        document.getElementById("login-password").value = "";
+      }
+
+      /* =========================================================
+   8. TAMBAH DATA (ADMIN)
+   ========================================================= */
+      function tambahData() {
+        if (sessionStorage.getItem(SESSION_KEY) !== "1") {
+          alert("Anda harus login terlebih dahulu.");
+          return;
+        }
+        const lokasi = document.getElementById("input-lokasi").value.trim();
+        const risiko = document.getElementById("input-risiko").value;
+        const tanggal = document.getElementById("input-tanggal").value;
+        const korban =
+          parseInt(document.getElementById("input-korban").value) || 0;
+        const lat = parseFloat(document.getElementById("input-lat").value);
+        const lng = parseFloat(document.getElementById("input-lng").value);
+        const hujan = parseFloat(document.getElementById("input-hujan").value);
+
+        if (!lokasi || !tanggal || isNaN(lat) || isNaN(lng)) {
+          alert(
+            "Lengkapi: Nama Lokasi, Tanggal, Latitude, dan Longitude (angka).",
+          );
+          return;
+        }
+
+        const data = getData();
+        const newId = data.length ? Math.max(...data.map((d) => d.id)) + 1 : 1;
+
+        data.push({
+          id: newId,
+          lokasi,
+          risiko,
+          tanggal,
+          korban,
+          lat,
+          lng,
+          curah_hujan_mm: isNaN(hujan) ? null : hujan,
+          jarak_ke_jalan_km: null,
+          tipe_infrastruktur_terdampak: "-",
+        });
+        saveData(data);
+
+        alert(`✅ Data "${lokasi}" berhasil ditambahkan.`);
+        // clear input
+        [
+          "input-lokasi",
+          "input-tanggal",
+          "input-korban",
+          "input-lat",
+          "input-lng",
+          "input-hujan",
+        ].forEach((id) => (document.getElementById(id).value = ""));
+        renderSemua();
+      }
+
+      /* =========================================================
+   9. RESET FILTER
+   ========================================================= */
+      function resetFilter() {
+        document.getElementById("filter-risiko").value = "Semua";
+        document.getElementById("tgl-mulai").value = "";
+        document.getElementById("tgl-selesai").value = "";
+        renderSemua();
+      }
+
+      /* =========================================================
+   10. INISIALISASI SAAT HALAMAN DIBUKA
+   ========================================================= */
+      (function init() {
+        // tampilkan status cuaca (simulasi BMKG)
+        renderStats();
+
+        // restore session login jika ada
+        if (sessionStorage.getItem(SESSION_KEY) === "1") setLoginUI(true);
+
+        // render awal
+        renderSemua();
+      })();
+    </script>
+  </body>
+</html>
