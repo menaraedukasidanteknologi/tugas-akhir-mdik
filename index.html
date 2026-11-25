@@ -1,786 +1,1557 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Web-GIS Kebencanaan Tanah Longsor - Sulawesi Tengah</title>
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <style>
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        font-family: "Segoe UI", Tahoma, Arial, sans-serif;
-        margin: 0;
-        padding: 0;
-        background: #eef1f5;
-        color: #222;
-      }
-      header {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        color: #fff;
-        padding: 20px 30px;
-        text-align: center;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-      }
-      header h1 {
-        margin: 0 0 6px;
-        font-size: 22px;
-      }
-      header h2 {
-        margin: 0;
-        font-size: 15px;
-        font-weight: 400;
-        opacity: 0.9;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Informasi Kebencanaan Banjir - Kabupaten Morowali Utara (72.12)</title>
+  <meta name="description" content="Dashboard Informasi Kebencanaan Banjir Kabupaten Morowali Utara Berbasis Data DIBI BNPB (2015-2026) untuk Dukungan Mitigasi dan Respons." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --surface-soft: #f8fafc;
+      --border: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --text-subtle: #64748b;
+      --navy: #0f172a;
+      --primary: #0369a1;
+      --primary-light: #e0f2fe;
+      --primary-dark: #075985;
+      --teal: #0d9488;
+      --teal-light: #ccfbf1;
+      --amber: #d97706;
+      --amber-light: #fef3c7;
+      --rose: #dc2626;
+      --rose-light: #fee2e2;
+      --indigo: #4338ca;
+      --indigo-light: #e0e7ff;
+      --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+      --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+      --radius: 12px;
+    }
 
-      .dashboard {
-        padding: 15px 30px;
-      }
-      .stats-row {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 12px;
-        margin-bottom: 15px;
-      }
-      .stat-card {
-        background: #fff;
-        padding: 14px 18px;
-        border-radius: 10px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-        border-left: 5px solid #007bff;
-      }
-      .stat-card .label {
-        font-size: 12px;
-        color: #666;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-      .stat-card .value {
-        font-size: 24px;
-        font-weight: bold;
-        margin-top: 4px;
-        color: #1e3c72;
-      }
-      .stat-card.red {
-        border-left-color: #dc3545;
-      }
-      .stat-card.orange {
-        border-left-color: #fd7e14;
-      }
-      .stat-card.blue {
-        border-left-color: #007bff;
-      }
-      .stat-card.green {
-        border-left-color: #28a745;
-      }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      font-size: 14px;
+    }
 
-      .panel {
-        background: #fff;
-        padding: 15px 18px;
-        border-radius: 10px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-        margin-bottom: 12px;
-      }
-      .panel-title {
-        font-weight: 600;
-        margin-bottom: 10px;
-        font-size: 14px;
-        color: #1e3c72;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 6px;
-      }
-      .filter-row {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        align-items: center;
-      }
-      .filter-row label {
-        font-size: 13px;
-        font-weight: 600;
-        color: #444;
-      }
+    .mono { font-family: 'JetBrains Mono', monospace; }
 
-      input,
-      select,
-      button {
-        padding: 8px 10px;
-        border: 1px solid #ccc;
-        border-radius: 6px;
-        font-size: 13px;
-        font-family: inherit;
-      }
-      input:focus,
-      select:focus {
-        outline: 2px solid #2a5298;
-        border-color: transparent;
-      }
-      button {
-        background-color: #007bff;
-        color: #fff;
-        cursor: pointer;
-        border: none;
-        font-weight: 600;
-        transition: 0.2s;
-      }
-      button:hover {
-        background-color: #0056b3;
-        transform: translateY(-1px);
-      }
-      .btn-danger {
-        background-color: #dc3545;
-      }
-      .btn-danger:hover {
-        background-color: #b02a37;
-      }
-      .btn-secondary {
-        background-color: #6c757d;
-      }
-      .btn-secondary:hover {
-        background-color: #565e64;
-      }
-      .btn-success {
-        background-color: #28a745;
-      }
-      .btn-success:hover {
-        background-color: #1e7e34;
-      }
+    /* Top Header */
+    .header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 65%, #0c4a6e 100%);
+      color: #ffffff;
+      padding: 20px 24px 18px;
+      border-bottom: 3px solid #0284c7;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .header-top {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .badge-blue { background: rgba(56, 189, 248, 0.18); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.35); }
+    .badge-teal { background: rgba(45, 212, 191, 0.18); color: #5eead4; border: 1px solid rgba(45, 212, 191, 0.35); }
+    .badge-amber { background: rgba(251, 191, 36, 0.18); color: #fde68a; border: 1px solid rgba(251, 191, 36, 0.35); }
 
-      #map {
-        height: 65vh;
-        width: calc(100% - 60px);
-        margin: 0 30px 20px;
-        border-radius: 12px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-      }
+    h1 {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.25;
+      color: #ffffff;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: #cbd5e1;
+      margin-top: 4px;
+      max-width: 820px;
+    }
 
-      .login-box {
-        background: #fff3cd;
-        padding: 12px 15px;
-        border-radius: 8px;
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        flex-wrap: wrap;
-        border-left: 4px solid #ffc107;
-      }
-      .admin-panel {
-        background: #d1ecf1;
-        padding: 12px 15px;
-        border-radius: 8px;
-        display: none;
-        gap: 10px;
-        align-items: center;
-        flex-wrap: wrap;
-        border-left: 4px solid #17a2b8;
-      }
+    .header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 13px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+    }
+    .btn-glass {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.22);
+    }
+    .btn-glass:hover { background: rgba(255, 255, 255, 0.18); }
+    .btn-primary {
+      background: #0284c7;
+      color: #ffffff;
+    }
+    .btn-primary:hover { background: #0369a1; }
+    .btn-outline {
+      background: #ffffff;
+      color: var(--text);
+      border-color: var(--border-strong);
+    }
+    .btn-outline:hover { background: var(--surface-soft); }
 
-      .badge {
-        display: inline-block;
-        padding: 3px 8px;
-        border-radius: 10px;
-        font-size: 11px;
-        font-weight: 600;
-        color: #fff;
-      }
-      .badge.sangat {
-        background: #dc3545;
-      }
-      .badge.tinggi {
-        background: #fd7e14;
-      }
-      .badge.sedang {
-        background: #007bff;
-      }
+    /* Transparent Metadata Bar */
+    .meta-strip {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.14);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 10px 18px;
+      font-size: 12px;
+      color: #e2e8f0;
+    }
+    .meta-item span.label {
+      display: block;
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #94a3b8;
+    }
+    .meta-item strong { font-weight: 600; color: #f8fafc; }
+    .meta-item a { color: #7dd3fc; text-decoration: underline; }
 
-      .legend {
-        background: #fff;
-        padding: 10px 14px;
-        border-radius: 8px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-        line-height: 1.9;
-        font-size: 12px;
-      }
-      .legend b {
-        display: block;
-        margin-bottom: 4px;
-      }
-      .legend .dot {
-        display: inline-block;
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        margin-right: 6px;
-        border: 1px solid #333;
-        vertical-align: middle;
-      }
+    /* Decision Question Banner */
+    .decision-banner {
+      background: #ffffff;
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+    }
+    .decision-inner {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .dq-box {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      max-width: 960px;
+    }
+    .dq-tag {
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      font-weight: 700;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+    .dq-text {
+      font-size: 13px;
+      color: var(--text);
+      font-weight: 500;
+    }
 
-      footer {
-        text-align: center;
-        padding: 15px;
-        color: #666;
-        font-size: 12px;
-      }
-    </style>
-  </head>
-  <body>
-    <header>
-      <h1>Sistem Informasi & Manajemen Data Kebencanaan</h1>
-      <h2>Studi Kasus: Tanah Longsor — Provinsi Sulawesi Tengah</h2>
-    </header>
+    /* Main Content */
+    .main {
+      padding: 20px 24px 36px;
+    }
 
-    <div class="dashboard">
-      <!-- STATISTIK -->
-      <div class="stats-row">
-        <div class="stat-card blue">
-          <div class="label">Total Kejadian</div>
-          <div class="value" id="stat-total">0</div>
+    /* Control & Filter Bar */
+    .filter-bar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .filter-groups {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 16px;
+    }
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .filter-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    select, input[type="text"] {
+      padding: 7px 11px;
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--text);
+      background: #ffffff;
+      outline: none;
+    }
+    select:focus, input[type="text"]:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);
+    }
+
+    .phase-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .pill {
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--border-strong);
+      background: var(--surface-soft);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .pill:hover { background: #e2e8f0; }
+    .pill.active {
+      background: var(--navy);
+      color: #ffffff;
+      border-color: var(--navy);
+    }
+    .pill.active[data-phase="mitigasi"] { background: #0369a1; border-color: #0369a1; }
+    .pill.active[data-phase="respons"] { background: #b45309; border-color: #b45309; }
+    .pill.active[data-phase="pemulihan"] { background: #0f766e; border-color: #0f766e; }
+
+    /* KPI Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(225px, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    .kpi-card.highlighted {
+      border-color: #0284c7;
+      box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2), var(--shadow-md);
+      background: #f0f9ff;
+    }
+    .kpi-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .kpi-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .kpi-tag {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 6px;
+    }
+    .kpi-value {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      line-height: 1.15;
+    }
+    .kpi-unit {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-subtle);
+      margin-left: 4px;
+    }
+    .kpi-sub {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    /* Section Cards */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    .grid-map {
+      display: grid;
+      grid-template-columns: 1.25fr 0.75fr;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    @media (max-width: 1024px) {
+      .grid-2, .grid-map { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow-sm);
+    }
+    .card-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .card-subtitle {
+      font-size: 12px;
+      color: var(--text-subtle);
+      margin-top: 2px;
+    }
+    .chart-wrap {
+      position: relative;
+      height: 270px;
+      width: 100%;
+    }
+
+    /* Interactive Vector Map */
+    .map-container {
+      position: relative;
+      background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 100%);
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      height: 360px;
+      overflow: hidden;
+      user-select: none;
+    }
+    .map-svg {
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+    }
+    .map-svg:active { cursor: grabbing; }
+    .region-poly {
+      transition: fill 0.2s ease, stroke-width 0.2s ease;
+      cursor: pointer;
+    }
+    .region-poly:hover {
+      filter: brightness(0.95);
+    }
+    .region-focus {
+      fill: #0284c7;
+      stroke: #0f172a;
+      stroke-width: 2.2;
+      animation: pulseFill 3s infinite ease-in-out;
+    }
+    @keyframes pulseFill {
+      0%, 100% { fill: #0284c7; }
+      50% { fill: #0369a1; }
+    }
+    .region-neighbor {
+      fill: #cbd5e1;
+      stroke: #64748b;
+      stroke-width: 1.2;
+    }
+    .region-neighbor:hover { fill: #94a3b8; }
+
+    .map-controls {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      z-index: 10;
+    }
+    .map-btn {
+      width: 32px;
+      height: 32px;
+      background: #ffffff;
+      border: 1px solid var(--border-strong);
+      border-radius: 7px;
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text);
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .map-btn:hover { background: var(--surface-soft); }
+
+    .map-legend {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(4px);
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 11px;
+      max-width: 265px;
+      box-shadow: var(--shadow-sm);
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: 4px;
+    }
+    .swatch {
+      width: 13px;
+      height: 13px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    .map-tooltip {
+      position: absolute;
+      pointer-events: none;
+      background: rgba(15, 23, 42, 0.94);
+      color: #ffffff;
+      padding: 8px 11px;
+      border-radius: 8px;
+      font-size: 11.5px;
+      box-shadow: var(--shadow-md);
+      z-index: 20;
+      display: none;
+      max-width: 240px;
+    }
+
+    .spatial-detail-box {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12px;
+      height: 100%;
+    }
+    .stat-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .stat-mini {
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .stat-mini .lbl { font-size: 11px; color: var(--text-subtle); }
+    .stat-mini .val { font-size: 16px; font-weight: 700; color: var(--text); margin-top: 2px; }
+
+    .compliance-note {
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #78350f;
+    }
+
+    /* Snapshot Juli 2026 & Table */
+    .snapshot-card {
+      background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+      border: 1px solid #bfdbfe;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .snapshot-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .snap-item {
+      background: #ffffff;
+      border: 1px solid #dbeafe;
+      border-radius: 8px;
+      padding: 9px 10px;
+    }
+    .snap-item .s-lbl { font-size: 11px; color: var(--text-subtle); }
+    .snap-item .s-val { font-size: 17px; font-weight: 800; color: var(--text); }
+    .snap-item .s-delta { font-size: 11px; font-weight: 600; margin-top: 2px; }
+
+    /* Data Table */
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+    th {
+      background: var(--surface-soft);
+      color: var(--text-muted);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border-strong);
+      white-space: nowrap;
+    }
+    td {
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8fafc; }
+
+    .status-chip {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .chip-complete { background: #dcfce7; color: #166534; }
+    .chip-agg { background: #fef3c7; color: #92400e; }
+
+    /* Decision & Recommendations Section */
+    .decision-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 12px;
+    }
+    @media (max-width: 960px) {
+      .decision-grid { grid-template-columns: 1fr; }
+    }
+    .rec-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 15px;
+      background: var(--surface-soft);
+      transition: all 0.15s ease;
+    }
+    .rec-card.highlighted {
+      background: #ffffff;
+      border-color: #0284c7;
+      box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2), var(--shadow-md);
+    }
+    .rec-phase {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 24px;
+      padding: 16px 24px;
+      background: #ffffff;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-subtle);
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 100;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: #ffffff;
+      border-radius: 14px;
+      max-width: 820px;
+      width: 100%;
+      max-height: 88vh;
+      overflow-y: auto;
+      padding: 22px 24px;
+      box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.25);
+    }
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 14px;
+    }
+    .close-btn {
+      background: var(--surface-soft);
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER & TRANSPARENT METADATA -->
+  <header class="header">
+    <div class="container">
+      <div class="header-top">
+        <div>
+          <div class="badge-row">
+            <span class="badge badge-blue">SIK PASCASARJANA MTI • MDIK</span>
+            <span class="badge badge-teal">KODE WILAYAH: 72.12 (KAB. MOROWALI UTARA)</span>
+            <span class="badge badge-amber">KATEGORI: BANJIR (KODE 1010)</span>
+          </div>
+          <h1>Dashboard Informasi Kebencanaan Banjir di Kabupaten Morowali Utara Berbasis Data DIBI BNPB untuk Dukungan Mitigasi dan Respons</h1>
+          <p class="subtitle">Dibuat oleh: <strong>Noldi Krisandi (F5522630024)</strong> &amp; <strong>Slamet Riyadi (F5522630001)</strong> — Magister Teknologi Informasi</p>
         </div>
-        <div class="stat-card red">
-          <div class="label">Total Korban Jiwa</div>
-          <div class="value" id="stat-korban">0</div>
-        </div>
-        <div class="stat-card orange">
-          <div class="label">Risiko Sangat Tinggi</div>
-          <div class="value" id="stat-tinggi">0</div>
-        </div>
-        <div class="stat-card green">
-          <div class="label">Curah Hujan (BMKG)</div>
-          <div class="value" id="stat-hujan">—</div>
+        <div class="header-actions">
+          <button class="btn btn-glass" onclick="openModal('modal-meta')">📋 Metadata &amp; Kamus Data</button>
+          <button class="btn btn-glass" onclick="openModal('modal-uat')">✅ Hasil Uji Fungsi &amp; UAT (4,67/5)</button>
+          <button class="btn btn-primary" onclick="exportCSV()">⬇️ Unduh CSV Bersih</button>
         </div>
       </div>
 
-      <!-- FILTER -->
-      <div class="panel">
-        <div class="panel-title">🔍 Filter Data</div>
-        <div class="filter-row">
-          <label>Risiko:</label>
-          <select id="filter-risiko" onchange="renderSemua()">
-            <option value="Semua">Semua Risiko</option>
-            <option value="Sangat Tinggi">Sangat Tinggi</option>
-            <option value="Tinggi">Tinggi</option>
-            <option value="Sedang">Sedang</option>
-          </select>
-          <label>Dari Tanggal:</label>
-          <input type="date" id="tgl-mulai" onchange="renderSemua()" />
-          <label>Sampai:</label>
-          <input type="date" id="tgl-selesai" onchange="renderSemua()" />
-          <button class="btn-secondary" onclick="resetFilter()">
-            Reset Filter
-          </button>
+      <div class="meta-strip">
+        <div class="meta-item">
+          <span class="label">Sumber Primer Resmi</span>
+          <strong>DIBI BNPB (<a href="https://dibi.bnpb.go.id" target="_blank" rel="noopener">dibi.bnpb.go.id</a>)</strong>
         </div>
-      </div>
-
-      <!-- LOGIN -->
-      <div id="login-section" class="panel login-box">
-        <strong>🔐 Login Admin BPBD:</strong>
-        <input type="text" id="login-username" placeholder="Username" />
-        <input
-          type="password"
-          id="login-password"
-          placeholder="Password" />
-        <button onclick="prosesLogin()">Login</button>
-      </div>
-
-      <!-- ADMIN PANEL -->
-      <div id="admin-panel" class="panel admin-panel">
-        <strong>➕ Tambah Data Kejadian:</strong>
-        <input
-          type="text"
-          id="input-lokasi"
-          placeholder="Nama Lokasi"
-          style="width: 150px" />
-        <select id="input-risiko">
-          <option value="Sedang">Sedang</option>
-          <option value="Tinggi">Tinggi</option>
-          <option value="Sangat Tinggi">Sangat Tinggi</option>
-        </select>
-        <input type="date" id="input-tanggal" />
-        <input
-          type="number"
-          id="input-korban"
-          placeholder="Korban"
-          style="width: 80px" />
-        <input
-          type="number"
-          step="0.001"
-          id="input-lat"
-          placeholder="Latitude"
-          style="width: 110px" />
-        <input
-          type="number"
-          step="0.001"
-          id="input-lng"
-          placeholder="Longitude"
-          style="width: 110px" />
-        <input
-          type="number"
-          step="0.1"
-          id="input-hujan"
-          placeholder="Curah Hujan (mm)"
-          style="width: 130px" />
-        <button class="btn-success" onclick="tambahData()">Simpan</button>
-        <button class="btn-danger" onclick="resetDataDefault()">
-          Reset Data Default
-        </button>
-        <button class="btn-secondary" onclick="prosesLogout()">Logout</button>
+        <div class="meta-item">
+          <span class="label">Periode Pengamatan &amp; Cakupan</span>
+          <strong>2015 – 2026 (43 Kejadian; 9 Log Rinci 2025–2026)</strong>
+        </div>
+        <div class="meta-item">
+          <span class="label">Pengguna Sasaran Utama</span>
+          <strong>BPBD Kab. Morowali Utara &amp; Pemda</strong>
+        </div>
+        <div class="meta-item">
+          <span class="label">Tanggal Pemutakhiran Data</span>
+          <strong>25 November 2026 (Terverifikasi)</strong>
+        </div>
       </div>
     </div>
+  </header>
 
-    <div id="map"></div>
-
-    <footer>
-      © 2026 — Proyek Tugas Akhir Sistem Informasi Kebencanaan | Universitas
-      Tadulako
-    </footer>
-
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-      /* =========================================================
-   1. DATA CUACA (SIMULASI BMKG)
-   ========================================================= */
-      const dataCuaca = {
-        stasiun: "Stasiun Meteorologi Palu",
-        curah_hujan_mm: 120,
-        status: "Siaga",
-      };
-
-      /* =========================================================
-   2. DATA DEFAULT KEJADIAN LONGSOR (SUMBER: BNPB, DISIMULASIKAN)
-   ========================================================= */
-      const DEFAULT_DATA = [
-        {
-          id: 1,
-          lokasi: "Kec. Palu Barat, Palu",
-          risiko: "Sangat Tinggi",
-          tanggal: "2024-01-15",
-          korban: 2,
-          lat: -0.891,
-          lng: 119.87,
-          curah_hujan_mm: 145,
-          jarak_ke_jalan_km: 0.3,
-          tipe_infrastruktur_terdampak: "Jalan Provinsi",
-        },
-        {
-          id: 2,
-          lokasi: "Kec. Sigi Biromaru, Sigi",
-          risiko: "Tinggi",
-          tanggal: "2024-02-20",
-          korban: 0,
-          lat: -1.22,
-          lng: 119.97,
-          curah_hujan_mm: 110,
-          jarak_ke_jalan_km: 1.2,
-          tipe_infrastruktur_terdampak: "Permukiman",
-        },
-        {
-          id: 3,
-          lokasi: "Kec. Banawa, Donggala",
-          risiko: "Sangat Tinggi",
-          tanggal: "2024-03-10",
-          korban: 5,
-          lat: -0.69,
-          lng: 119.73,
-          curah_hujan_mm: 170,
-          jarak_ke_jalan_km: 0.1,
-          tipe_infrastruktur_terdampak: "Jalan Nasional",
-        },
-        {
-          id: 4,
-          lokasi: "Kec. Poso Kota, Poso",
-          risiko: "Sedang",
-          tanggal: "2024-04-05",
-          korban: 0,
-          lat: -1.39,
-          lng: 120.75,
-          curah_hujan_mm: 80,
-          jarak_ke_jalan_km: 2.5,
-          tipe_infrastruktur_terdampak: "Lahan Pertanian",
-        },
-        {
-          id: 5,
-          lokasi: "Kec. Parigi, Parigi Moutong",
-          risiko: "Tinggi",
-          tanggal: "2024-05-12",
-          korban: 1,
-          lat: -0.62,
-          lng: 120.18,
-          curah_hujan_mm: 130,
-          jarak_ke_jalan_km: 0.6,
-          tipe_infrastruktur_terdampak: "Permukiman",
-        },
-        {
-          id: 6,
-          lokasi: "Kec. Baolan, Tolitoli",
-          risiko: "Sedang",
-          tanggal: "2024-06-18",
-          korban: 0,
-          lat: 1.04,
-          lng: 120.82,
-          curah_hujan_mm: 75,
-          jarak_ke_jalan_km: 1.8,
-          tipe_infrastruktur_terdampak: "Lahan Pertanian",
-        },
-        {
-          id: 7,
-          lokasi: "Kec. Ampana, Tojo Una-Una",
-          risiko: "Tinggi",
-          tanggal: "2024-07-22",
-          korban: 3,
-          lat: -1.27,
-          lng: 121.38,
-          curah_hujan_mm: 160,
-          jarak_ke_jalan_km: 0.4,
-          tipe_infrastruktur_terdampak: "Jalan Provinsi",
-        },
-        {
-          id: 8,
-          lokasi: "Kec. Bungku, Morowali",
-          risiko: "Sedang",
-          tanggal: "2024-08-30",
-          korban: 0,
-          lat: -2.35,
-          lng: 121.85,
-          curah_hujan_mm: 90,
-          jarak_ke_jalan_km: 3.0,
-          tipe_infrastruktur_terdampak: "Kawasan Tambang",
-        },
-        {
-          id: 9,
-          lokasi: "Kec. Luwuk, Banggai",
-          risiko: "Tinggi",
-          tanggal: "2024-09-14",
-          korban: 2,
-          lat: -1.29,
-          lng: 122.85,
-          curah_hujan_mm: 120,
-          jarak_ke_jalan_km: 0.5,
-          tipe_infrastruktur_terdampak: "Permukiman",
-        },
-        {
-          id: 10,
-          lokasi: "Kec. Paleleh, Buol",
-          risiko: "Sedang",
-          tanggal: "2024-10-05",
-          korban: 0,
-          lat: 1.16,
-          lng: 121.42,
-          curah_hujan_mm: 85,
-          jarak_ke_jalan_km: 2.2,
-          tipe_infrastruktur_terdampak: "Jalan Desa",
-        },
-        {
-          id: 11,
-          lokasi: "Kec. Dolo, Sigi",
-          risiko: "Tinggi",
-          tanggal: "2024-12-08",
-          korban: 1,
-          lat: -1.25,
-          lng: 120.01,
-          curah_hujan_mm: 140,
-          jarak_ke_jalan_km: 0.9,
-          tipe_infrastruktur_terdampak: "Permukiman",
-        },
-      ];
-
-      /* =========================================================
-   3. ZONA RAWAN (POLYGON SIMULASI)
-   ========================================================= */
-      const zonaRawan = {
-        type: "FeatureCollection",
-        features: [
-          {
-            type: "Feature",
-            properties: { nama: "Zona Rawan Tinggi (Sigi & Palu)" },
-            geometry: {
-              type: "Polygon",
-              coordinates: [
-                [
-                  [119.8, -1.2],
-                  [120.2, -1.2],
-                  [120.2, -0.8],
-                  [119.8, -0.8],
-                  [119.8, -1.2],
-                ],
-              ],
-            },
-          },
-          {
-            type: "Feature",
-            properties: { nama: "Zona Rawan Sedang (Donggala)" },
-            geometry: {
-              type: "Polygon",
-              coordinates: [
-                [
-                  [119.6, -0.8],
-                  [120.0, -0.8],
-                  [120.0, -0.5],
-                  [119.6, -0.5],
-                  [119.6, -0.8],
-                ],
-              ],
-            },
-          },
-        ],
-      };
-
-      /* =========================================================
-   4. MANAJEMEN DATA (localStorage)
-   ========================================================= */
-      const STORAGE_KEY = "db_longsor_webgis";
-
-      function getData() {
-        try {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if (!raw) return [...DEFAULT_DATA];
-          return JSON.parse(raw);
-        } catch (e) {
-          return [...DEFAULT_DATA];
-        }
-      }
-      function saveData(arr) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
-      }
-      function resetDataDefault() {
-        if (!confirm("Yakin reset ke data default? Data tambahan akan hilang."))
-          return;
-        localStorage.removeItem(STORAGE_KEY);
-        renderSemua();
-        alert("Data berhasil di-reset ke default.");
-      }
-
-      /* =========================================================
-   5. INISIALISASI PETA
-   ========================================================= */
-      const map = L.map("map").setView([-0.891, 119.87], 8);
-      L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
-        maxZoom: 17,
-        attribution: "&copy; OpenTopoMap | Web-GIS Kebencanaan Tadulako",
-      }).addTo(map);
-
-      // Polygon zona rawan
-      L.geoJSON(zonaRawan, {
-        style: (feature) => ({
-          color: feature.properties.nama.includes("Tinggi")
-            ? "#dc3545"
-            : "#fd7e14",
-          weight: 2,
-          fillColor: feature.properties.nama.includes("Tinggi")
-            ? "#dc3545"
-            : "#fd7e14",
-          fillOpacity: 0.18,
-          dashArray: "5,5",
-        }),
-        onEachFeature: (feature, layer) => {
-          layer.bindPopup(`<b>${feature.properties.nama}</b>`);
-        },
-      }).addTo(map);
-
-      // Legend
-      const legend = L.control({ position: "bottomright" });
-      legend.onAdd = () => {
-        const div = L.DomUtil.create("div", "legend");
-        div.innerHTML = `
-    <b>Legenda</b>
-    <div><span class="dot" style="background:#dc3545"></span>Sangat Tinggi</div>
-    <div><span class="dot" style="background:#fd7e14"></span>Tinggi</div>
-    <div><span class="dot" style="background:#007bff"></span>Sedang</div>
-    <div style="margin-top:6px;font-size:11px;color:#555">⬛ Garis putus = Zona Rawan</div>
-  `;
-        return div;
-      };
-      legend.addTo(map);
-
-      /* =========================================================
-   6. RENDER MARKER + STATISTIK
-   ========================================================= */
-      let markerLayer = null;
-
-      function warnaRisiko(r) {
-        return r === "Sangat Tinggi"
-          ? "#dc3545"
-          : r === "Tinggi"
-            ? "#fd7e14"
-            : "#007bff";
-      }
-
-      function renderSemua() {
-        renderMarkers();
-        renderStats();
-      }
-
-      function renderMarkers() {
-        const data = getData();
-        const risiko = document.getElementById("filter-risiko").value;
-        const tglMulai = document.getElementById("tgl-mulai").value;
-        const tglSelesai = document.getElementById("tgl-selesai").value;
-
-        const filtered = data.filter((d) => {
-          if (risiko !== "Semua" && d.risiko !== risiko) return false;
-          if (tglMulai && d.tanggal < tglMulai) return false;
-          if (tglSelesai && d.tanggal > tglSelesai) return false;
-          return true;
-        });
-
-        if (markerLayer) map.removeLayer(markerLayer);
-
-        markerLayer = L.layerGroup(
-          filtered.map((d) => {
-            const marker = L.circleMarker([d.lat, d.lng], {
-              radius: 10,
-              fillColor: warnaRisiko(d.risiko),
-              color: "#222",
-              weight: 1.5,
-              fillOpacity: 0.9,
-            });
-            marker.bindPopup(`
-      <div style="font-family:Segoe UI,Arial;font-size:13px;min-width:200px">
-        <b style="font-size:14px">${d.lokasi}</b><br>
-        <hr style="margin:6px 0;border:none;border-top:1px solid #eee">
-        <b>Tanggal:</b> ${d.tanggal}<br>
-        <b>Risiko:</b> <span class="badge ${d.risiko === "Sangat Tinggi" ? "sangat" : d.risiko.toLowerCase()}">${d.risiko}</span><br>
-        <b>Korban:</b> ${d.korban} jiwa<br>
-        <b>Curah Hujan:</b> ${d.curah_hujan_mm ?? "-"} mm<br>
-        <b>Jarak ke Jalan:</b> ${d.jarak_ke_jalan_km ?? "-"} km<br>
-        <b>Infrastruktur:</b> ${d.tipe_infrastruktur_terdampak || "-"}
+  <!-- DECISION QUESTION BANNER -->
+  <section class="decision-banner">
+    <div class="container decision-inner">
+      <div class="dq-box">
+        <span class="dq-tag">PERTANYAAN KEPUTUSAN UTAMA</span>
+        <p class="dq-text">“Bagaimana tren historis, distribusi musiman, dan tingkat kerusakan fisik maupun dampak populasi akibat bencana banjir di Kabupaten Morowali Utara selama periode 2015–2026 guna menentukan prioritas alokasi logistik tanggap darurat serta penjadwalan intervensi mitigasi infrastruktur?”</p>
       </div>
-    `);
-            return marker;
-          }),
-        ).addTo(map);
+    </div>
+  </section>
 
-        if (filtered.length) {
-          const bounds = L.latLngBounds(filtered.map((d) => [d.lat, d.lng]));
-          map.fitBounds(bounds, { padding: [40, 40], maxZoom: 10 });
+  <!-- MAIN WORKSPACE -->
+  <main class="main container">
+
+    <!-- INTERACTIVE FILTER BAR -->
+    <div class="filter-bar">
+      <div class="filter-groups">
+        <div class="filter-group">
+          <label class="filter-label" for="periodFilter">Periode Pengamatan:</label>
+          <select id="periodFilter" onchange="applyFilters()">
+            <option value="all">Semua Periode (2015 – 2026 • 43 Kejadian)</option>
+            <option value="2025-2026">Log Kronologis Terbaru (2025 – 2026 • 9 Kejadian)</option>
+            <option value="2026">Tahun 2026 (2 Kejadian • Mei &amp; Juli)</option>
+            <option value="2025">Tahun 2025 (7 Kejadian • Apr – Agu)</option>
+            <option value="2015-2024">Agregat Historis (2015 – 2024 • 34 Kejadian)</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <span class="filter-label">Sorot Fase Siklus Bencana:</span>
+          <div class="phase-pills" id="phasePills">
+            <button class="pill active" data-phase="semua" onclick="setPhase('semua')">Semua Fase</button>
+            <button class="pill" data-phase="mitigasi" onclick="setPhase('mitigasi')">1. Mitigasi (Pra-Bencana)</button>
+            <button class="pill" data-phase="respons" onclick="setPhase('respons')">2. Respons (Tanggap Darurat)</button>
+            <button class="pill" data-phase="pemulihan" onclick="setPhase('pemulihan')">3. Pemulihan (Rehabilitasi)</button>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-outline" onclick="resetAll()">↺ Reset Filter</button>
+    </div>
+
+    <!-- 5 KPI SUMMARY CARDS -->
+    <section class="kpi-grid" id="kpiGrid">
+      <div class="kpi-card" data-phases="mitigasi respons">
+        <div class="kpi-top">
+          <span class="kpi-title">Total Kejadian Banjir</span>
+          <span class="kpi-tag" style="background:var(--primary-light);color:var(--primary-dark);">Kode: 1010</span>
+        </div>
+        <div>
+          <span class="kpi-value" id="kpiEvents">43</span>
+          <span class="kpi-unit">Kejadian</span>
+        </div>
+        <div class="kpi-sub">
+          <span id="kpiEventsSub">34 historis (2015–2024) + 9 log rinci (2025–2026)</span>
+        </div>
+      </div>
+
+      <div class="kpi-card" data-phases="respons">
+        <div class="kpi-top">
+          <span class="kpi-title">Jiwa Terdampak / Mengungsi</span>
+          <span class="kpi-tag" style="background:var(--amber-light);color:#92400e;">Populasi</span>
+        </div>
+        <div>
+          <span class="kpi-value" id="kpiAffected">44.800</span>
+          <span class="kpi-unit">Jiwa</span>
+        </div>
+        <div class="kpi-sub">
+          <span id="kpiAffectedSub">Rerata ~1.042 jiwa terdampak per kejadian</span>
+        </div>
+      </div>
+
+      <div class="kpi-card" data-phases="respons">
+        <div class="kpi-top">
+          <span class="kpi-title">Korban Meninggal &amp; Hilang</span>
+          <span class="kpi-tag" style="background:var(--rose-light);color:#991b1b;">Fatalitas</span>
+        </div>
+        <div>
+          <span class="kpi-value" id="kpiFatal">1</span>
+          <span class="kpi-unit">Jiwa</span>
+        </div>
+        <div class="kpi-sub">
+          <span id="kpiFatalSub">Rasio fatalitas rendah: 0,02 jiwa/kejadian</span>
+        </div>
+      </div>
+
+      <div class="kpi-card" data-phases="mitigasi respons">
+        <div class="kpi-top">
+          <span class="kpi-title">Rumah Terendam Genangan</span>
+          <span class="kpi-tag" style="background:var(--teal-light);color:#115e59;">93,71% Hunian</span>
+        </div>
+        <div>
+          <span class="kpi-value" id="kpiSubmerged">4.010</span>
+          <span class="kpi-unit">Unit Rumah</span>
+        </div>
+        <div class="kpi-sub">
+          <span id="kpiSubmergedSub">Dominan genangan luapan DAS Laa &amp; Tambalako</span>
+        </div>
+      </div>
+
+      <div class="kpi-card" data-phases="pemulihan mitigasi">
+        <div class="kpi-top">
+          <span class="kpi-title">Rumah Rusak &amp; Indeks Rugi</span>
+          <span class="kpi-tag" style="background:var(--indigo-light);color:#3730a3;">6,29% Struktural</span>
+        </div>
+        <div>
+          <span class="kpi-value" id="kpiDamaged">269</span>
+          <span class="kpi-unit">Unit (7 RB • 1 RS • 261 RR)</span>
+        </div>
+        <div class="kpi-sub">
+          <span id="kpiDamagedSub">Estimasi Kerugian Rumah DIBI: 8.370</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHARTS ROW: TEMPORAL TREND & HOUSING IMPACT COMPOSITION -->
+    <section class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Distribusi Musiman Kejadian Banjir (Log Kronologis 2025–2026)</h2>
+            <p class="card-subtitle">Konsentrasi klaster kejadian pada jendela hidrometeorologi bulan April – Agustus (N = 9 log rinci)</p>
+          </div>
+          <span class="badge badge-blue" style="background:#e0f2fe;color:#0369a1;border-color:#bae6fd;">Klaster Apr–Agu</span>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Proporsi Dampak Fisik Hunian (Total 4.279 Unit)</h2>
+            <p class="card-subtitle">Perbandingan rumah terendam (93,71%) terhadap kerusakan struktural RB, RS, dan RR (6,29%)</p>
+          </div>
+          <span class="badge badge-teal" style="background:#ccfbf1;color:#0f766e;border-color:#99f6e4;">2015–2026</span>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="impactChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- SPATIAL MAP & GEOGRAPHIC CONTEXT -->
+    <section class="grid-map">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Peta Sebaran Agregat Administratif &amp; Konteks DAS Sulawesi Tengah</h2>
+            <p class="card-subtitle">Visualisasi spasial tingkat Kabupaten (Kode 72.12 — Morowali Utara) tanpa titik koordinat fiktif</p>
+          </div>
+          <span class="mono" style="font-size:11px;color:var(--text-subtle);">Granularitas: Kabupaten (BPS 72.12)</span>
+        </div>
+
+        <div class="map-container" id="mapContainer">
+          <div class="map-controls">
+            <button class="map-btn" title="Perbesar" onclick="zoomMap(1.2)">+</button>
+            <button class="map-btn" title="Perkecil" onclick="zoomMap(0.83)">−</button>
+            <button class="map-btn" title="Reset Tampilan Peta" onclick="resetMap()">⌂</button>
+          </div>
+
+          <div class="map-tooltip" id="mapTooltip"></div>
+
+          <svg class="map-svg" id="sulawesiMap" viewBox="0 0 760 440" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="gridPattern" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(14, 116, 144, 0.1)" stroke-width="1"/>
+              </pattern>
+            </defs>
+            <rect width="760" height="440" fill="url(#gridPattern)" />
+
+            <!-- Sea Labels -->
+            <text x="530" y="95" fill="#0369a1" font-size="12" font-weight="700" opacity="0.65" letter-spacing="2">TELUK TOMINI</text>
+            <text x="585" y="295" fill="#0369a1" font-size="12" font-weight="700" opacity="0.65" letter-spacing="2">TELUK TOLO</text>
+
+            <g id="mapViewport">
+              <!-- Parigi Moutong (72.08) -->
+              <path class="region-poly region-neighbor"
+                data-code="72.08" data-name="Kab. Parigi Moutong" data-role="Kabupaten Penyangga Utara"
+                data-info="Berbatasan di sisi barat laut; wilayah tangkapan hulu pegunungan tengah."
+                d="M 140,70 L 245,55 L 270,115 L 200,155 L 135,130 Z"
+                onclick="selectRegion(this)" onmousemove="showMapTip(event, this)" onmouseout="hideMapTip()" />
+              <text x="172" y="110" fill="#334155" font-size="10" font-weight="600" pointer-events="none">Parigi Moutong</text>
+
+              <!-- Poso (72.02) -->
+              <path class="region-poly region-neighbor"
+                data-code="72.02" data-name="Kab. Poso" data-role="Kabupaten Penyangga Barat (Hulu DAS Laa)"
+                data-info="Berbatasan langsung di sisi barat; daerah hulu aliran sungai menuju lembah Morowali Utara."
+                d="M 135,130 L 200,155 L 265,165 L 275,265 L 185,295 L 125,220 Z"
+                onclick="selectRegion(this)" onmousemove="showMapTip(event, this)" onmouseout="hideMapTip()" />
+              <text x="175" y="218" fill="#334155" font-size="11" font-weight="600" pointer-events="none">Kab. Poso</text>
+
+              <!-- Tojo Una-Una (72.09) -->
+              <path class="region-poly region-neighbor"
+                data-code="72.09" data-name="Kab. Tojo Una-Una" data-role="Kabupaten Penyangga Utara"
+                data-info="Berbatasan di utara; koridor pesisir Teluk Tomini."
+                d="M 270,115 L 430,105 L 445,155 L 330,175 L 265,165 Z"
+                onclick="selectRegion(this)" onmousemove="showMapTip(event, this)" onmouseout="hideMapTip()" />
+              <text x="315" y="146" fill="#334155" font-size="10.5" font-weight="600" pointer-events="none">Tojo Una-Una</text>
+
+              <!-- Banggai (72.01) -->
+              <path class="region-poly region-neighbor"
+                data-code="72.01" data-name="Kab. Banggai" data-role="Kabupaten Penyangga Timur Laut"
+                data-info="Berbatasan di sisi timur laut (semenanjung timur Sulawesi Tengah)."
+                d="M 445,155 L 625,130 L 650,180 L 505,215 L 435,205 Z"
+                onclick="selectRegion(this)" onmousemove="showMapTip(event, this)" onmouseout="hideMapTip()" />
+              <text x="515" y="176" fill="#334155" font-size="11" font-weight="600" pointer-events="none">Kab. Banggai</text>
+
+              <!-- KABUPATEN MOROWALI UTARA (72.12) - FOCUS POLYGON -->
+              <path class="region-poly region-focus"
+                data-code="72.12" data-name="Kabupaten Morowali Utara" data-role="WILAYAH KAJIAN UTAMA (DIBI BNPB)"
+                data-info="43 Kejadian Banjir • 44.800 Jiwa Terdampak • 4.010 Rumah Terendam • 269 Rumah Rusak."
+                d="M 265,165 L 330,175 L 435,205 L 465,265 L 415,310 L 340,305 L 275,265 Z"
+                onclick="selectRegion(this)" onmousemove="showMapTip(event, this)" onmouseout="hideMapTip()" />
+
+              <!-- Illustrative River Network (DAS Laa & Tambalako) -->
+              <path d="M 285,195 Q 335,220 375,245 T 432,262" fill="none" stroke="#bae6fd" stroke-width="2.5" stroke-dasharray="5,3" pointer-events="none" />
+              <text x="292" y="213" fill="#e0f2fe" font-size="9.5" font-weight="600" pointer-events="none">DAS Laa &amp; Tambalako</text>
+
+              <!-- Morowali (72.06) -->
+              <path class="region-poly region-neighbor"
+                data-code="72.06" data-name="Kab. Morowali" data-role="Kabupaten Penyangga Selatan"
+                data-info="Berbatasan di sisi selatan; wilayah pemekaran induk sebelum pembentukan Morowali Utara."
+                d="M 340,305 L 415,310 L 495,355 L 465,395 L 365,365 Z"
+                onclick="selectRegion(this)" onmousemove="showMapTip(event, this)" onmouseout="hideMapTip()" />
+              <text x="392" y="352" fill="#334155" font-size="10.5" font-weight="600" pointer-events="none">Kab. Morowali</text>
+
+              <!-- Reference Administrative Capital Marker: Kolonodale -->
+              <g transform="translate(418, 258)" pointer-events="none">
+                <circle r="9" fill="rgba(251, 191, 36, 0.35)" />
+                <circle r="4.5" fill="#fbbf24" stroke="#0f172a" stroke-width="1.5" />
+                <rect x="9" y="-11" width="136" height="20" rx="4" fill="#0f172a" opacity="0.9" />
+                <text x="15" y="2" fill="#fde68a" font-size="10" font-weight="700">Kolonodale (Posko BPBD)</text>
+              </g>
+
+              <!-- Focus Label -->
+              <text x="315" y="242" fill="#ffffff" font-size="12" font-weight="800" pointer-events="none">MOROWALI UTARA</text>
+              <text x="336" y="256" fill="#bae6fd" font-size="10" font-weight="700" pointer-events="none">(Kode: 72.12)</text>
+            </g>
+
+            <!-- Compass & Scale Bar -->
+            <g transform="translate(32, 34)">
+              <circle r="16" fill="rgba(255,255,255,0.9)" stroke="#94a3b8" />
+              <polygon points="0,-11 4,2 0,-1 -4,2" fill="#dc2626" />
+              <polygon points="0,11 4,-2 0,1 -4,-2" fill="#334155" />
+              <text x="-3.5" y="-18" font-size="9" font-weight="800" fill="#0f172a">U</text>
+            </g>
+            <g transform="translate(625, 412)">
+              <rect x="0" y="0" width="100" height="5" fill="#0f172a" />
+              <rect x="50" y="0" width="50" height="5" fill="#ffffff" stroke="#0f172a" />
+              <text x="0" y="-4" font-size="9.5" font-weight="600" fill="#0f172a">0</text>
+              <text x="42" y="-4" font-size="9.5" font-weight="600" fill="#0f172a">25</text>
+              <text x="82" y="-4" font-size="9.5" font-weight="600" fill="#0f172a">50 km</text>
+            </g>
+          </svg>
+
+          <div class="map-legend">
+            <strong style="color:var(--text);">Legenda Spasial (BPS 72.12)</strong>
+            <div class="legend-item">
+              <span class="swatch" style="background:#0284c7;border:1.5px solid #0f172a;"></span>
+              <span>Kab. Morowali Utara (43 Kejadian Banjir)</span>
+            </div>
+            <div class="legend-item">
+              <span class="swatch" style="background:#fbbf24;border-radius:50%;border:1px solid #0f172a;"></span>
+              <span>Kolonodale (Ibu Kota &amp; Pusat Logistik BPBD)</span>
+            </div>
+            <div class="legend-item">
+              <span class="swatch" style="background:#cbd5e1;border:1px solid #64748b;"></span>
+              <span>Kabupaten Penyangga Sulawesi Tengah</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SPATIAL ATTRIBUTE PANEL -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title" id="regionPanelTitle">Profil Spasial: Kab. Morowali Utara (72.12)</h2>
+            <p class="card-subtitle" id="regionPanelSub">Klik poligon pada peta untuk meninjau keterkaitan wilayah</p>
+          </div>
+        </div>
+
+        <div class="spatial-detail-box">
+          <div class="stat-list" id="regionStats">
+            <div class="stat-mini">
+              <div class="lbl">Kode Wilayah Kemendagri</div>
+              <div class="val mono">72.12</div>
+            </div>
+            <div class="stat-mini">
+              <div class="lbl">Provinsi</div>
+              <div class="val">Sulawesi Tengah (72)</div>
+            </div>
+            <div class="stat-mini">
+              <div class="lbl">Karakteristik Hidrologi</div>
+              <div class="val" style="font-size:13px;">DAS Laa &amp; Sungai Tambalako</div>
+            </div>
+            <div class="stat-mini">
+              <div class="lbl">Simpul Pre-Positioning</div>
+              <div class="val" style="font-size:13px;">Kolonodale (Pusdalops)</div>
+            </div>
+          </div>
+
+          <p id="regionDesc" style="font-size:12.5px;color:var(--text-muted);">
+            Topografi perbukitan dengan dataran rendah aliran sungai menyebabkan luapan air permukaan berulang saat curah hujan tinggi pada bulan April–Agustus, berdampak pada 4.010 unit rumah terendam dan 44.800 jiwa terdampak.
+          </p>
+
+          <div class="compliance-note">
+            <strong>Kepatuhan Etika &amp; Granularitas Spasial:</strong><br/>
+            Sesuai kaidah validitas data DIBI BNPB, peta menampilkan agregasi tingkat <strong>Kabupaten (72.12)</strong> dan titik referensi resmi pusat koordinasi <strong>Kolonodale</strong> tanpa menempatkan pin koordinat kejadian perkiraan/fiktif pada level desa.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EVIDENCE SNAPSHOT + CHRONOLOGICAL EVENT LOG TABLE -->
+    <section class="card" style="margin-bottom:18px;">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">Log Kronologis Kejadian Terbaru (2025–2026) &amp; Evaluasi Bulanan DIBI</h2>
+          <p class="card-subtitle">Sumber: Tabel Dampak Kejadian Bencana DIBI BNPB &amp; Laporan Situasi Pusdalops BPBD Provinsi Sulawesi Tengah</p>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="tableSearch" placeholder="Cari UUID, tanggal, atau bulan..." onkeyup="renderTable()" style="width:240px;" />
+        </div>
+      </div>
+
+      <!-- UAT Priority Improvement: Permanent Juli 2026 YoY Evaluation Card -->
+      <div class="snapshot-card">
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;">
+          <strong style="font-size:13px;color:#1e3a8a;">📌 Snapshot Evaluasi Bulanan DIBI — Juli 2026 (Perbandingan Year-on-Year)</strong>
+          <span style="font-size:11px;color:#1d4ed8;font-weight:600;">Hasil Perbaikan Prioritas UAT • Sumber: Rilis Bulanan DIBI BNPB</span>
+        </div>
+        <div class="snapshot-grid">
+          <div class="snap-item">
+            <div class="s-lbl">Kejadian Banjir (Juli 2026)</div>
+            <div class="s-val">1 Kejadian</div>
+            <div class="s-delta" style="color:#475569;">+0,0% YoY (Stabil vs Juli tahun lalu)</div>
+          </div>
+          <div class="snap-item">
+            <div class="s-lbl">Jiwa Terdampak (Juli 2026)</div>
+            <div class="s-val">504 Jiwa</div>
+            <div class="s-delta" style="color:#b45309;">+0,0% YoY (Paparan populasi masih tinggi)</div>
+          </div>
+          <div class="snap-item">
+            <div class="s-lbl">Estimasi Kerugian Rumah (Juli 2026)</div>
+            <div class="s-val">168 Indeks</div>
+            <div class="s-delta" style="color:#15803d;">▼ -77,1% YoY (Kerusakan fisik menurun tajam)</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>ID Kejadian (UUID DIBI)</th>
+              <th>Tanggal</th>
+              <th>Waktu (WITA)</th>
+              <th>Minggu</th>
+              <th>Bulan</th>
+              <th>Tahun</th>
+              <th>Wilayah (Kode)</th>
+              <th>Jiwa Terdampak</th>
+              <th>Est. Kerugian</th>
+              <th>Status Validasi</th>
+            </tr>
+          </thead>
+          <tbody id="eventTableBody"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:8px;font-size:11.5px;color:var(--text-subtle);display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+        <span id="tableCountInfo">Menampilkan 9 catatan log kronologis terbaru (2025–2026) dari total 43 kejadian agregat (2015–2026).</span>
+        <span>Catatan: Baris dengan nilai dampak teragregasi pada total kumulatif portal ditandai tanpa imputasi angka fiktif.</span>
+      </div>
+    </section>
+
+    <!-- DECISION FINDINGS & ACTIONABLE RECOMMENDATIONS -->
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">Temuan Utama &amp; Rekomendasi Operasional Terpetakan Siklus Bencana</h2>
+          <p class="card-subtitle">Rekomendasi berbasis bukti empiris 43 kejadian banjir di Kabupaten Morowali Utara (2015–2026)</p>
+        </div>
+        <span class="badge badge-blue" style="background:#f1f5f9;color:#334155;border-color:#cbd5e1;">≥ 3 Temuan &amp; 3 Rekomendasi</span>
+      </div>
+
+      <div class="decision-grid" id="recGrid">
+        <div class="rec-card" data-phases="mitigasi">
+          <span class="rec-phase" style="background:var(--primary-light);color:var(--primary-dark);">1. FASE MITIGASI (PRA-BENCANA)</span>
+          <h3 style="font-size:14px;margin-bottom:6px;">Penjadwalan Normalisasi DAS di Kuartal I</h3>
+          <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:8px;">
+            <strong>Temuan Empiris:</strong> Seluruh log kejadian terbaru (100% dari 9 catatan 2025–2026) terkonsentrasi pada rentang bulan <strong>April hingga Agustus</strong>.
+          </p>
+          <p style="font-size:12.5px;color:var(--text);">
+            <strong>Rekomendasi:</strong> BPBD dan Dinas PU memfokuskan pengerukan sedimen DAS Laa/Tambalako serta pembersihan drainase pada <strong>Januari–Maret (Kuartal I)</strong> sebelum jendela puncak banjir dimulai.
+          </p>
+        </div>
+
+        <div class="rec-card" data-phases="respons">
+          <span class="rec-phase" style="background:var(--amber-light);color:#92400e;">2. FASE RESPONS (TANGGAP DARURAT)</span>
+          <h3 style="font-size:14px;margin-bottom:6px;">Pre-Positioning Armada Evakuasi &amp; Pengungsian</h3>
+          <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:8px;">
+            <strong>Temuan Empiris:</strong> <strong>93,71%</strong> dampak hunian berupa rumah terendam (4.010 unit) dengan rata-rata <strong>~1.042 jiwa terdampak</strong> per kejadian (total 44.800 jiwa), namun fatalitas rendah (1 jiwa).
+          </p>
+          <p style="font-size:12.5px;color:var(--text);">
+            <strong>Rekomendasi:</strong> Memprioritaskan kesiapan perahu karet, tenda komunal, dapur umum, dan air bersih di <strong>Posko Kolonodale</strong> dibandingkan peralatan SAR reruntuhan berat.
+          </p>
+        </div>
+
+        <div class="rec-card" data-phases="pemulihan">
+          <span class="rec-phase" style="background:var(--teal-light);color:#115e59;">3. FASE PEMULIHAN &amp; TATA KELOLA SIK</span>
+          <h3 style="font-size:14px;margin-bottom:6px;">Stimulan Rumah Rusak &amp; Pelaporan Kecamatan</h3>
+          <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:8px;">
+            <strong>Temuan Empiris:</strong> Terdapat <strong>269 unit rumah rusak</strong> (7 Rusak Berat, 1 Rusak Sedang, 261 Rusak Ringan), sementara data publik DIBI masih terbatas pada agregasi tingkat kabupaten.
+          </p>
+          <p style="font-size:12.5px;color:var(--text);">
+            <strong>Rekomendasi:</strong> Menyalurkan stimulan rehabilitasi prioritas pada 7 RB &amp; 1 RS, serta mengintegrasikan formulir Pusdalops kecamatan agar granularitas SIK menjangkau level desa.
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container" style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;">
+      <div>
+        <strong>Sistem Informasi Kebencanaan (SIK) — Kabupaten Morowali Utara (Kode: 72.12)</strong><br/>
+        Sumber Data: Portal DIBI BNPB (https://dibi.bnpb.go.id) &amp; Laporan Situasi Pusdalops BPBD Provinsi Sulawesi Tengah • Diakses: 25 November 2026.
+      </div>
+      <div style="text-align:right;">
+        Tim Penyusun: Noldi Krisandi (F5522630024) &amp; Slamet Riyadi (F5522630001)<br/>
+        Mata Kuliah Manajemen Data dan Informasi Kebencanaan • Program Magister Teknologi Informasi
+      </div>
+    </div>
+  </footer>
+
+  <!-- MODAL 1: METADATA & KAMUS DATA -->
+  <div class="modal-backdrop" id="modal-meta" onclick="closeModalOnBg(event, 'modal-meta')">
+    <div class="modal">
+      <div class="modal-head">
+        <div>
+          <h3 style="font-size:16px;font-weight:800;">Metadata Sumber Data, Kamus Data &amp; Batasan Analisis</h3>
+          <p style="font-size:12px;color:var(--text-subtle);">Dokumentasi Tata Kelola Data Mini Project MDIK</p>
+        </div>
+        <button class="close-btn" onclick="closeModal('modal-meta')">✕ Tutup</button>
+      </div>
+
+      <div style="font-size:12.5px;margin-bottom:14px;background:var(--surface-soft);padding:12px;border-radius:8px;border:1px solid var(--border);">
+        <p><strong>Penerbit &amp; URL:</strong> Badan Nasional Penanggulangan Bencana (BNPB) — <a href="https://dibi.bnpb.go.id" target="_blank">https://dibi.bnpb.go.id</a> (Diakses 25 November 2026).</p>
+        <p style="margin-top:4px;"><strong>Kepatuhan Privasi (Etika):</strong> Seluruh rekaman berada pada level agregat kejadian dan administratif kabupaten (72.12) sehingga bebas dari data pribadi (PII) korban.</p>
+        <p style="margin-top:4px;"><strong>Batasan &amp; Ketidakpastian:</strong> (1) Granularitas spasial publik terbatas hingga tingkat kabupaten; (2) 34 kejadian periode 2015–2024 tercermin dalam angka kumulatif, sedangkan 9 kejadian periode April 2025–Juli 2026 tersedia sebagai log kronologis rinci; (3) Nilai estimasi kerugian rumah bersifat indikatif sesuai indeks DIBI hingga finalisasi Jitupasna.</p>
+      </div>
+
+      <h4 style="font-size:13.5px;margin-bottom:8px;">Kamus Data Ringkas (Data Dictionary)</h4>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nama Variabel</th>
+              <th>Tipe Data</th>
+              <th>Satuan / Format</th>
+              <th>Deskripsi &amp; Aturan Validasi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="mono">id_kejadian</td><td>String (UUID)</td><td>36 Karakter</td><td>Pengenal unik kejadian dari portal DIBI BNPB; wajib unik (not null).</td></tr>
+            <tr><td class="mono">tanggal_kejadian</td><td>Date</td><td>YYYY-MM-DD</td><td>Tanggal terjadinya bencana banjir yang telah distandardisasi ISO.</td></tr>
+            <tr><td class="mono">waktu_kejadian</td><td>Time</td><td>HH:MM:SS (WITA)</td><td>Waktu pencatatan kejadian berdasarkan laporan Pusdalops.</td></tr>
+            <tr><td class="mono">kode_kabupaten</td><td>String</td><td>Kode BPS (72.12)</td><td>Kode administratif Kabupaten Morowali Utara, Sulawesi Tengah (72).</td></tr>
+            <tr><td class="mono">jenis_bencana</td><td>Categorical</td><td>Banjir (Kode: 1010)</td><td>Klasifikasi bencana hidrometeorologi sesuai taksonomi BNPB.</td></tr>
+            <tr><td class="mono">jiwa_terdampak</td><td>Integer</td><td>Jiwa</td><td>Akumulasi penduduk menderita dan mengungsi akibat banjir (≥ 0).</td></tr>
+            <tr><td class="mono">rumah_terendam</td><td>Integer</td><td>Unit Rumah</td><td>Jumlah hunian yang tergenang air banjir tanpa kerusakan struktural.</td></tr>
+            <tr><td class="mono">rumah_rusak</td><td>Integer</td><td>Unit (RB/RS/RR)</td><td>Klasifikasi kerusakan fisik hunian: Rusak Berat, Sedang, dan Ringan.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: UAT & FUNCTIONAL TESTING -->
+  <div class="modal-backdrop" id="modal-uat" onclick="closeModalOnBg(event, 'modal-uat')">
+    <div class="modal">
+      <div class="modal-head">
+        <div>
+          <h3 style="font-size:16px;font-weight:800;">Dokumentasi Functional Testing &amp; User Acceptance Testing (UAT)</h3>
+          <p style="font-size:12px;color:var(--text-subtle);">Hasil Evaluasi 2 Responden Independen — Rerata Kepuasan: 4,67 / 5,00</p>
+        </div>
+        <button class="close-btn" onclick="closeModal('modal-uat')">✕ Tutup</button>
+      </div>
+
+      <div class="table-wrap" style="margin-bottom:14px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Skenario / Aspek Penilaian UAT</th>
+              <th>Responden 1 (Praktisi Data)</th>
+              <th>Responden 2 (Pemerhati Kebencanaan)</th>
+              <th>Hasil &amp; Komentar</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Skenario 1: Menemukan wilayah paling terdampak &amp; indikator utama</td>
+              <td>Berhasil (18 detik)</td>
+              <td>Berhasil (22 detik)</td>
+              <td>100% Berhasil — KPI &amp; peta langsung mengidentifikasi Morowali Utara (72.12).</td>
+            </tr>
+            <tr>
+              <td>Skenario 2: Membandingkan kondisi antarperiode (2025 vs 2026)</td>
+              <td>Berhasil (25 detik)</td>
+              <td>Berhasil (30 detik)</td>
+              <td>100% Berhasil — Filter tahun &amp; grafik bulanan memudahkan komparasi musiman.</td>
+            </tr>
+            <tr>
+              <td>Skenario 3: Menemukan sumber data, batasan, &amp; tanggal pembaruan</td>
+              <td>Berhasil (12 detik)</td>
+              <td>Berhasil (15 detik)</td>
+              <td>100% Berhasil — Bilah metadata pada header terlihat tanpa menggulir halaman.</td>
+            </tr>
+            <tr>
+              <td>Skor Kejelasan Visualisasi (1–5)</td>
+              <td><strong>5 / 5</strong></td>
+              <td><strong>4 / 5</strong></td>
+              <td>Rerata: <strong>4,50 / 5,00</strong></td>
+            </tr>
+            <tr>
+              <td>Skor Kemudahan Penggunaan (1–5)</td>
+              <td><strong>5 / 5</strong></td>
+              <td><strong>5 / 5</strong></td>
+              <td>Rerata: <strong>5,00 / 5,00</strong></td>
+            </tr>
+            <tr>
+              <td>Skor Kegunaan Dashboard (1–5)</td>
+              <td><strong>4 / 5</strong></td>
+              <td><strong>5 / 5</strong></td>
+              <td>Rerata: <strong>4,50 / 5,00</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:11px 13px;border-radius:8px;font-size:12.5px;color:#14532d;">
+        <strong>Tindak Lanjut Perbaikan Prioritas UAT:</strong> Menambahkan kartu <em>Snapshot Evaluasi Bulanan Juli 2026 (-77,1% YoY estimasi kerugian rumah)</em> secara permanen di atas tabel kronologis agar perbandingan tahunan dapat dibaca langsung tanpa membuka dokumen laporan terpisah.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 1. VERIFIED DATASET FROM REPORT & DIBI BNPB
+    const eventLogs = [
+      { id: "d38154dd-ae8d-444e-a69c-4c14405bf22e", tanggal: "2026-07-24", waktu: "10:00:00", minggu: 30, bulan: "Juli (7)", tahun: 2026, jiwa: "504", rugi: "168", status: "Terverifikasi Rilis Bulanan" },
+      { id: "cd8cb02b-cb0e-4b61-a31d-26a3ab4ebeba", tanggal: "2026-05-04", waktu: "06:20:00", minggu: 19, bulan: "Mei (5)", tahun: 2026, jiwa: "Agregat Portal", rugi: "Agregat Portal", status: "Teragregasi Kumulatif" },
+      { id: "69101112-4eee-470b-bdf2-93c41a423a39", tanggal: "2025-08-20", waktu: "12:00:00", minggu: 34, bulan: "Agustus (8)", tahun: 2025, jiwa: "Agregat Portal", rugi: "Agregat Portal", status: "Teragregasi Kumulatif" },
+      { id: "b3d41c48-7ead-4fe6-9d3e-9bee2773d6b2", tanggal: "2025-08-09", waktu: "00:02:00", minggu: 32, bulan: "Agustus (8)", tahun: 2025, jiwa: "Agregat Portal", rugi: "Agregat Portal", status: "Teragregasi Kumulatif" },
+      { id: "4ba42178-89d7-4043-b9b4-9c5e8962878f", tanggal: "2025-06-15", waktu: "21:03:00", minggu: 24, bulan: "Juni (6)", tahun: 2025, jiwa: "Agregat Portal", rugi: "Agregat Portal", status: "Teragregasi Kumulatif" },
+      { id: "ec8c89ae-6850-4a37-9628-8c60221df704", tanggal: "2025-06-14", waktu: "20:30:00", minggu: 24, bulan: "Juni (6)", tahun: 2025, jiwa: "Agregat Portal", rugi: "Agregat Portal", status: "Teragregasi Kumulatif" },
+      { id: "6e64890c-1fec-4784-b059-6f4b92056264", tanggal: "2025-05-02", waktu: "02:00:00", minggu: 18, bulan: "Mei (5)", tahun: 2025, jiwa: "Agregat Portal", rugi: "Agregat Portal", status: "Teragregasi Kumulatif" },
+      { id: "958cbd9b-2e0f-4794-adc6-e517d3a24783", tanggal: "2025-04-03", waktu: "22:00:00", minggu: 14, bulan: "April (4)", tahun: 2025, jiwa: "Agregat Portal", rugi: "Agregat Portal", status: "Teragregasi Kumulatif" },
+      { id: "eddabb02-11a2-4d9c-[arsip-dibi]", tanggal: "2025-04-02", waktu: "22:59:00", minggu: 14, bulan: "April (4)", tahun: 2025, jiwa: "Agregat Portal", rugi: "Agregat Portal", status: "Teragregasi Kumulatif" }
+    ];
+
+    const periodSummary = {
+      "all": {
+        events: "43", eventsSub: "34 historis (2015–2024) + 9 log rinci (2025–2026)",
+        affected: "44.800", affectedSub: "Rerata ~1.042 jiwa terdampak per kejadian",
+        fatal: "1", fatalSub: "Rasio fatalitas rendah: 0,02 jiwa/kejadian",
+        submerged: "4.010", submergedSub: "93,71% dari total 4.279 hunian terdampak",
+        damaged: "269", damagedSub: "7 RB • 1 RS • 261 RR | Est. Rugi DIBI: 8.370"
+      },
+      "2025-2026": {
+        events: "9", eventsSub: "Seluruh kejadian terjadi pada klaster April – Agustus",
+        affected: "504+", affectedSub: "504 jiwa tercatat pada Juli 2026 (+ sisa agregat portal)",
+        fatal: "0*", fatalSub: "*1 jiwa tercatat pada akumulasi historis 2015–2026",
+        submerged: "Agregat", submergedSub: "Tercakup dalam akumulasi 4.010 rumah terendam",
+        damaged: "168*", damagedSub: "*Indeks estimasi kerugian Juli 2026 (-77,1% YoY)"
+      },
+      "2026": {
+        events: "2", eventsSub: "Kejadian 4 Mei 2026 dan 24 Juli 2026",
+        affected: "504", affectedSub: "Tercatat pada evaluasi bulanan Juli 2026 (+0,0% YoY)",
+        fatal: "0", fatalSub: "Nihil korban meninggal/hilang pada log 2026",
+        submerged: "Agregat", submergedSub: "Tercakup pada rekapitulasi tahunan DIBI",
+        damaged: "168", damagedSub: "Indeks kerugian Juli 2026 (turun -77,1% YoY)"
+      },
+      "2025": {
+        events: "7", eventsSub: "2 Apr, 1 Mei, 2 Jun, 2 Agu (Puncak aktivitas 2025)",
+        affected: "Agregat", affectedSub: "Tercakup dalam total kumulatif 44.800 jiwa DIBI",
+        fatal: "Agregat", fatalSub: "Tercakup dalam total kumulatif 1 jiwa DIBI",
+        submerged: "Agregat", submergedSub: "Tercakup dalam total kumulatif 4.010 unit DIBI",
+        damaged: "Agregat", damagedSub: "Tercakup dalam total kumulatif 269 unit rusak DIBI"
+      },
+      "2015-2024": {
+        events: "34", eventsSub: "79,07% dari total 43 kejadian historis banjir",
+        affected: "~44.296", affectedSub: "Akumulasi historis sebelum log rinci 2025–2026",
+        fatal: "1", fatalSub: "Tercatat dalam periode pengamatan historis",
+        submerged: "Agregat", submergedSub: "Bagian dari total 4.010 unit rumah terendam",
+        damaged: "Agregat", damagedSub: "Bagian dari total 269 unit rumah rusak"
+      }
+    };
+
+    // 2. RENDER CHARTS (CHART.JS)
+    let trendChart, impactChart;
+    function initCharts() {
+      const ctxTrend = document.getElementById('trendChart').getContext('2d');
+      trendChart = new Chart(ctxTrend, {
+        type: 'bar',
+        data: {
+          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+          datasets: [
+            {
+              label: 'Tahun 2025 (7 Kejadian)',
+              data: [0, 0, 0, 2, 1, 2, 0, 2, 0, 0, 0, 0],
+              backgroundColor: '#0284c7',
+              borderRadius: 6
+            },
+            {
+              label: 'Tahun 2026 (2 Kejadian)',
+              data: [0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0],
+              backgroundColor: '#0d9488',
+              borderRadius: 6
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top', labels: { font: { family: 'Inter', size: 12, weight: '600' } } },
+            tooltip: {
+              callbacks: {
+                afterBody: function(items) {
+                  const m = items[0].label;
+                  if (['Apr', 'Mei', 'Jun', 'Jul', 'Agu'].includes(m)) {
+                    return 'Status: Zona Klaster Puncak Banjir (Apr–Agu)';
+                  }
+                  return 'Status: Periode Persiapan Mitigasi (Kuartal I / IV)';
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { stepSize: 1, font: { family: 'Inter' } },
+              title: { display: true, text: 'Jumlah Kejadian Banjir', font: { size: 11, weight: '600' } }
+            },
+            x: {
+              grid: { display: false },
+              title: { display: true, text: 'Bulan Kalender (Konsentrasi April – Agustus)', font: { size: 11, weight: '600' } }
+            }
+          }
         }
-      }
+      });
 
-      function renderStats() {
-        const data = getData();
-        const total = data.length;
-        const totalKorban = data.reduce((s, d) => s + (d.korban || 0), 0);
-        const tinggiCount = data.filter(
-          (d) => d.risiko === "Sangat Tinggi",
-        ).length;
+      const ctxImpact = document.getElementById('impactChart').getContext('2d');
+      impactChart = new Chart(ctxImpact, {
+        type: 'doughnut',
+        data: {
+          labels: [
+            'Rumah Terendam (4.010 unit • 93,71%)',
+            'Rumah Rusak Ringan (261 unit • 6,10%)',
+            'Rumah Rusak Berat (7 unit • 0,16%)',
+            'Rumah Rusak Sedang (1 unit • 0,02%)'
+          ],
+          datasets: [{
+            data: [4010, 261, 7, 1],
+            backgroundColor: ['#0284c7', '#f59e0b', '#dc2626', '#7c3aed'],
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '58%',
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: { font: { family: 'Inter', size: 11.5 }, boxWidth: 13, padding: 12 }
+            }
+          }
+        }
+      });
+    }
 
-        document.getElementById("stat-total").textContent = total;
-        document.getElementById("stat-korban").textContent = totalKorban;
-        document.getElementById("stat-tinggi").textContent = tinggiCount;
-        document.getElementById("stat-hujan").textContent =
-          dataCuaca.curah_hujan_mm + " mm";
-      }
+    // 3. FILTERING & TABLE RENDERING
+    function applyFilters() {
+      const p = document.getElementById('periodFilter').value;
+      const s = periodSummary[p];
+      document.getElementById('kpiEvents').textContent = s.events;
+      document.getElementById('kpiEventsSub').textContent = s.eventsSub;
+      document.getElementById('kpiAffected').textContent = s.affected;
+      document.getElementById('kpiAffectedSub').textContent = s.affectedSub;
+      document.getElementById('kpiFatal').textContent = s.fatal;
+      document.getElementById('kpiFatalSub').textContent = s.fatalSub;
+      document.getElementById('kpiSubmerged').textContent = s.submerged;
+      document.getElementById('kpiSubmergedSub').textContent = s.submergedSub;
+      document.getElementById('kpiDamaged').textContent = s.damaged;
+      document.getElementById('kpiDamagedSub').textContent = s.damagedSub;
+      renderTable();
+    }
 
-      /* =========================================================
-   7. LOGIN & LOGOUT (SIMULASI)
-   ========================================================= */
-      const SESSION_KEY = "login_admin_longsor";
-
-      function setLoginUI(isLogin) {
-        document.getElementById("login-section").style.display = isLogin
-          ? "none"
-          : "flex";
-        document.getElementById("admin-panel").style.display = isLogin
-          ? "flex"
-          : "none";
-      }
-      function prosesLogin() {
-        const user = document.getElementById("login-username").value.trim();
-        const pass = document.getElementById("login-password").value;
-        if (user === "admin" && pass === "admin123") {
-          sessionStorage.setItem(SESSION_KEY, "1");
-          setLoginUI(true);
-          alert("Login berhasil. Selamat datang, Admin BPBD!");
+    function setPhase(phase) {
+      document.querySelectorAll('.pill').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.phase === phase);
+      });
+      document.querySelectorAll('.kpi-card, .rec-card').forEach(card => {
+        if (phase === 'semua') {
+          card.classList.remove('highlighted');
         } else {
-          alert("Username atau password salah.\nGunakan: admin / admin123");
+          const phases = (card.dataset.phases || '').split(' ');
+          card.classList.toggle('highlighted', phases.includes(phase));
         }
-      }
-      function prosesLogout() {
-        sessionStorage.removeItem(SESSION_KEY);
-        setLoginUI(false);
-        document.getElementById("login-username").value = "";
-        document.getElementById("login-password").value = "";
-      }
+      });
+    }
 
-      /* =========================================================
-   8. TAMBAH DATA (ADMIN)
-   ========================================================= */
-      function tambahData() {
-        if (sessionStorage.getItem(SESSION_KEY) !== "1") {
-          alert("Anda harus login terlebih dahulu.");
-          return;
+    function resetAll() {
+      document.getElementById('periodFilter').value = 'all';
+      document.getElementById('tableSearch').value = '';
+      setPhase('semua');
+      applyFilters();
+      resetMap();
+    }
+
+    function renderTable() {
+      const period = document.getElementById('periodFilter').value;
+      const query = document.getElementById('tableSearch').value.toLowerCase().trim();
+      const tbody = document.getElementById('eventTableBody');
+
+      const filtered = eventLogs.filter(row => {
+        if (period === '2026' && row.tahun !== 2026) return false;
+        if (period === '2025' && row.tahun !== 2025) return false;
+        if (period === '2015-2024') return false;
+        if (query) {
+          const hay = `${row.id} ${row.tanggal} ${row.bulan} ${row.tahun} ${row.status}`.toLowerCase();
+          return hay.includes(query);
         }
-        const lokasi = document.getElementById("input-lokasi").value.trim();
-        const risiko = document.getElementById("input-risiko").value;
-        const tanggal = document.getElementById("input-tanggal").value;
-        const korban =
-          parseInt(document.getElementById("input-korban").value) || 0;
-        const lat = parseFloat(document.getElementById("input-lat").value);
-        const lng = parseFloat(document.getElementById("input-lng").value);
-        const hujan = parseFloat(document.getElementById("input-hujan").value);
+        return true;
+      });
 
-        if (!lokasi || !tanggal || isNaN(lat) || isNaN(lng)) {
-          alert(
-            "Lengkapi: Nama Lokasi, Tanggal, Latitude, dan Longitude (angka).",
-          );
-          return;
-        }
-
-        const data = getData();
-        const newId = data.length ? Math.max(...data.map((d) => d.id)) + 1 : 1;
-
-        data.push({
-          id: newId,
-          lokasi,
-          risiko,
-          tanggal,
-          korban,
-          lat,
-          lng,
-          curah_hujan_mm: isNaN(hujan) ? null : hujan,
-          jarak_ke_jalan_km: null,
-          tipe_infrastruktur_terdampak: "-",
-        });
-        saveData(data);
-
-        alert(`✅ Data "${lokasi}" berhasil ditambahkan.`);
-        // clear input
-        [
-          "input-lokasi",
-          "input-tanggal",
-          "input-korban",
-          "input-lat",
-          "input-lng",
-          "input-hujan",
-        ].forEach((id) => (document.getElementById(id).value = ""));
-        renderSemua();
+      if (period === '2015-2024') {
+        tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:18px;color:var(--text-muted);">
+          Periode <strong>2015–2024</strong> memuat <strong>34 kejadian historis</strong> dalam bentuk angka kumulatif agregat portal DIBI BNPB (tanpa log UUID rinci per baris pada ekstrak lampiran).
+        </td></tr>`;
+        document.getElementById('tableCountInfo').textContent = "Menampilkan ringkasan agregat 34 kejadian historis (2015–2024).";
+        return;
       }
 
-      /* =========================================================
-   9. RESET FILTER
-   ========================================================= */
-      function resetFilter() {
-        document.getElementById("filter-risiko").value = "Semua";
-        document.getElementById("tgl-mulai").value = "";
-        document.getElementById("tgl-selesai").value = "";
-        renderSemua();
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:16px;color:var(--text-muted);">Tidak ada catatan kejadian yang cocok dengan kata kunci pencarian.</td></tr>`;
+        document.getElementById('tableCountInfo').textContent = "0 catatan ditemukan.";
+        return;
       }
 
-      /* =========================================================
-   10. INISIALISASI SAAT HALAMAN DIBUKA
-   ========================================================= */
-      (function init() {
-        // tampilkan status cuaca (simulasi BMKG)
-        renderStats();
+      tbody.innerHTML = filtered.map((r, idx) => {
+        const chipClass = r.status.includes('Terverifikasi') ? 'chip-complete' : 'chip-agg';
+        return `<tr>
+          <td>${idx + 1}</td>
+          <td class="mono" style="font-size:11.5px;">${r.id}</td>
+          <td class="mono">${r.tanggal}</td>
+          <td class="mono">${r.waktu}</td>
+          <td>Minggu ${r.minggu}</td>
+          <td>${r.bulan}</td>
+          <td><strong>${r.tahun}</strong></td>
+          <td>Morowali Utara (72.12)</td>
+          <td><strong>${r.jiwa}</strong></td>
+          <td><strong>${r.rugi}</strong></td>
+          <td><span class="status-chip ${chipClass}">${r.status}</span></td>
+        </tr>`;
+      }).join('');
 
-        // restore session login jika ada
-        if (sessionStorage.getItem(SESSION_KEY) === "1") setLoginUI(true);
+      document.getElementById('tableCountInfo').textContent = `Menampilkan ${filtered.length} dari 9 catatan log kronologis terbaru (2025–2026) — Total kumulatif 2015–2026: 43 kejadian.`;
+    }
 
-        // render awal
-        renderSemua();
-      })();
-    </script>
-  </body>
+    // 4. INTERACTIVE VECTOR MAP (ZOOM, PAN, TOOLTIP, CLICK)
+    let mapScale = 1, mapX = 0, mapY = 0, isDragging = false, startX = 0, startY = 0;
+    const viewport = document.getElementById('mapViewport');
+    const svgEl = document.getElementById('sulawesiMap');
+
+    function updateMapTransform() {
+      viewport.setAttribute('transform', `translate(${mapX}, ${mapY}) scale(${mapScale})`);
+    }
+    function zoomMap(factor) {
+      mapScale = Math.min(Math.max(mapScale * factor, 0.85), 2.5);
+      updateMapTransform();
+    }
+    function resetMap() {
+      mapScale = 1; mapX = 0; mapY = 0;
+      updateMapTransform();
+      const focusEl = document.querySelector('.region-focus');
+      if (focusEl) selectRegion(focusEl);
+    }
+
+    svgEl.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      startX = e.clientX - mapX;
+      startY = e.clientY - mapY;
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      mapX = e.clientX - startX;
+      mapY = e.clientY - startY;
+      updateMapTransform();
+    });
+    window.addEventListener('mouseup', () => { isDragging = false; });
+
+    function showMapTip(evt, el) {
+      const tip = document.getElementById('mapTooltip');
+      const rect = document.getElementById('mapContainer').getBoundingClientRect();
+      tip.innerHTML = `<strong>${el.dataset.name} (${el.dataset.code})</strong><br/><span style="color:#7dd3fc;">${el.dataset.role}</span><br/>${el.dataset.info}`;
+      tip.style.display = 'block';
+      tip.style.left = Math.min(evt.clientX - rect.left + 12, rect.width - 245) + 'px';
+      tip.style.top = Math.max(evt.clientY - rect.top - 10, 10) + 'px';
+    }
+    function hideMapTip() {
+      document.getElementById('mapTooltip').style.display = 'none';
+    }
+    function selectRegion(el) {
+      document.getElementById('regionPanelTitle').textContent = `Profil Spasial: ${el.dataset.name} (${el.dataset.code})`;
+      document.getElementById('regionPanelSub').textContent = el.dataset.role;
+      document.getElementById('regionDesc').textContent = el.dataset.info;
+    }
+
+    // 5. MODALS & CSV EXPORT
+    function openModal(id) { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+    function closeModalOnBg(evt, id) { if (evt.target.id === id) closeModal(id); }
+
+    function exportCSV() {
+      const headers = ["id_kejadian", "tanggal_kejadian", "waktu_kejadian_wita", "minggu", "bulan", "tahun", "kode_provinsi", "nama_provinsi", "kode_kabupaten", "nama_kabupaten", "kode_bencana", "jenis_bencana", "jiwa_terdampak", "estimasi_kerugian_rumah", "status_validasi"];
+      const rows = eventLogs.map(r => [
+        r.id, r.tanggal, r.waktu, r.minggu, r.bulan, r.tahun, "72", "Sulawesi Tengah", "72.12", "Morowali Utara", "1010", "Banjir", r.jiwa, r.rugi, r.status
+      ]);
+      const csvContent = [headers.join(","), ...rows.map(e => e.map(v => `"${v}"`).join(","))].join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Data_Bersih_Banjir_MorowaliUtara_7212.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // INIT
+    window.addEventListener('DOMContentLoaded', () => {
+      initCharts();
+      renderTable();
+    });
+  </script>
+</body>
 </html>
